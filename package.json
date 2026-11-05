@@ -1,0 +1,18 @@
+{
+  "name": "visual-time-setter",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Preparación local de solicitudes históricas de Cegid Visualtime",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test",
+    "test:ui": "node scripts/check-ui.js && node scripts/check-portal.js"
+  },
+  "dependencies": {
+    "playwright": "^1.58.0"
+  }
+}

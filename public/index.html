@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VisualTimeSetter</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="brand-icon" aria-hidden="true">VT</div>
+      <div><p class="eyebrow">TU JORNADA, AL DÍA</p><h1>VisualTimeSetter</h1></div>
+      <span class="local-badge">Solo en este equipo</span>
+    </header>
+    <p class="intro">Prepara tus solicitudes de fichaje olvidado de lunes a viernes.<br>Indica las horas realmente trabajadas y excluye los días que no correspondan.</p>
+
+    <section class="notice" aria-label="Estado de integración">
+      <strong id="integration-title">Conecta el formulario para empezar</strong>
+      <p id="integration-help">Abre el portal desde aquí, conecta el formulario y prueba la carga sin guardar. Después podrás confirmar el envío de los días seleccionados. No empieza automáticamente al iniciar sesión.</p>
+    </section>
+    <div id="message" role="status" aria-live="polite" hidden></div>
+
+    <section class="card">
+      <div class="section-title"><span class="step">1</span><h2>Periodo y horario</h2></div>
+      <form id="period-form">
+        <div class="fields">
+          <label>Fecha inicial<input type="text" id="start" name="start" required placeholder="dd/mm/aaaa" pattern="[0-9]{2}/[0-9]{2}/[0-9]{4}" maxlength="10" inputmode="numeric" title="Fecha en formato dd/mm/aaaa"></label>
+          <label>Fecha final<input type="text" id="end" name="end" required placeholder="dd/mm/aaaa" pattern="[0-9]{2}/[0-9]{2}/[0-9]{4}" maxlength="10" inputmode="numeric" title="Fecha en formato dd/mm/aaaa"></label>
+          <label>Hora de entrada<input type="text" id="entry" name="entry" required placeholder="HH:mm" pattern="([01][0-9]|2[0-3]):[0-5][0-9]" maxlength="5" inputmode="numeric" title="Hora de 24 horas: HH:mm, de 00:00 a 23:59"></label>
+          <label>Hora de salida<input type="text" id="exit" name="exit" required placeholder="HH:mm" pattern="([01][0-9]|2[0-3]):[0-5][0-9]" maxlength="5" inputmode="numeric" title="Hora de 24 horas: HH:mm, de 00:00 a 23:59"></label>
+        </div>
+        <p class="hint">Fechas inclusivas en dd/mm/aaaa. Horas en formato de 24 horas (HH:mm). Un horario de entrada y salida por día, dentro del mismo día. No se incluyen sábados ni domingos.</p>
+        <button type="submit" id="generate" class="primary">Generar vista previa</button>
+      </form>
+    </section>
+
+    <section id="preview" class="card" hidden>
+      <div class="section-title"><span class="step">2</span><h2>Revisa tus días</h2></div>
+      <p class="hint">Sábados y domingos están desmarcados y bloqueados: nunca se envían. Desmarca tú los festivos, vacaciones u otros días no trabajados. No se consultan calendarios de festivos ni fichajes existentes.</p>
+      <div class="selection-bar">
+        <label class="checkbox-label"><input type="checkbox" id="all-days">Seleccionar todos los días laborables</label>
+        <strong id="summary" aria-live="polite"></strong>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Incluir</th><th>Fecha</th><th>Entrada</th><th>Salida</th></tr></thead>
+          <tbody id="days"></tbody>
+        </table>
+      </div>
+      <p id="empty" hidden>Este periodo no contiene días de lunes a viernes.</p>
+      <div class="send-bar">
+        <p>Se crearían <strong>dos solicitudes por día</strong>, de tipo Presencia.<br>Motivo y Observaciones se dejarán sin tocar. Requieren validación del supervisor.</p>
+        <div class="actions">
+          <button type="button" id="prepare" class="secondary" disabled>Probar carga sin guardar</button>
+          <button type="button" id="send" class="primary" disabled aria-describedby="send-help">Confirmar y enviar</button>
+        </div>
+      </div>
+      <p id="send-help" class="hint">Primero conecta el formulario en el paso 3. No se ha intentado ninguna solicitud.</p>
+      <div id="preview-message" class="feedback" role="status" aria-live="polite" hidden></div>
+    </section>
+
+    <section class="card">
+      <div class="section-title"><span class="step">3</span><h2>Conectar con Visualtime</h2><span id="connection-badge" class="pending-badge">Pendiente</span></div>
+      <p>Abre Edge e inicia sesión directamente en el portal. Después navega a <strong>Solicitar → Fichaje no realizado</strong> y deja el formulario abierto, sin guardar.</p>
+      <div class="actions">
+        <button type="button" id="open-portal" class="secondary">Abrir portal en Edge</button>
+        <button type="button" id="connect" class="secondary" disabled>Conectar formulario</button>
+        <button type="button" id="inspect" class="secondary" disabled>Inspeccionar formulario (solo lectura)</button>
+      </div>
+      <div id="connection-message" class="feedback" role="status" aria-live="polite" hidden></div>
+      <p id="portal-status" class="hint">La sesión de Edge es temporal e independiente de tu navegador habitual. No se guardan contraseñas ni cookies entre ejecuciones.</p>
+      <p class="hint">Antes del primer envío real, comprueba la carga sin guardar. La integración usa los controles de tu diagnóstico y el acuse del servicio del portal; no se ha probado un guardado real en tu cuenta.</p>
+      <details id="diagnostic" hidden>
+        <summary>Diagnóstico local del formulario</summary>
+        <p class="hint">No contiene valores de los campos ni cookies. Revisa su contenido antes de compartirlo para completar la conexión.</p>
+        <pre id="diagnostic-content"></pre>
+        <button type="button" id="download" class="secondary">Descargar diagnóstico</button>
+      </details>
+    </section>
+
+    <section id="results-panel" class="card" hidden>
+      <h2>Resultado por solicitud</h2>
+      <p id="results-summary"></p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Fecha y hora</th><th>Sentido</th><th>Estado</th><th>Detalle</th></tr></thead>
+        <tbody id="results"></tbody>
+      </table></div>
+    </section>
+    <footer>Sin fichaje rápido ni botón «Entrar». Solicitar no significa aprobar.<br>Cada envío confirmado intenta toda la selección una vez. Los fallos se registran y se pasa al siguiente; el journal no bloquea reintentos.</footer>
+  </main>
+</body>
+</html>
