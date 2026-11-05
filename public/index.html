@@ -76,7 +76,8 @@
         <button type="button" id="inspect" class="secondary" disabled>Inspect form (read-only)</button>
       </div>
       <div id="connection-message" class="feedback" role="status" aria-live="polite" hidden></div>
-      <p id="portal-status" class="hint">The Edge session is temporary and separate from your regular browser. Passwords and cookies are not retained between runs.</p>
+      <p id="portal-status" class="hint">After a successful password login, client, user, and password are saved in the local .credentials file as plain text. This file is excluded from Git, but anyone with file access can read it. Delete it to forget the saved login. Cookies are not retained between runs.</p>
+      <p id="login-message" class="hint" role="status"></p>
       <p class="hint">Always test filling without saving before submitting. The integration checks the form controls and the portal's response. Submitted requests still require supervisor approval. The portal's own language is not changed.</p>
       <details id="diagnostic" hidden>
         <summary>Local form diagnostic</summary>

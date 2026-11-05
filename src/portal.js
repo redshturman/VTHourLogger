@@ -3,6 +3,7 @@ import { AppError } from './calendar.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { readPortalForm, multipartFields } from './portal-form.js';
 import { installSaveObserver, removeSaveObserver } from './portal-observer.js';
+import { loadCredentials, saveCredentials, observeLogin, fillLogin } from './credentials.js';
 
 const PORTAL_URL = 'https://vtportal.visualtime.net/index.aspx';
 
@@ -15,6 +16,7 @@ export class Portal {
     this.prepared = false;
     this.busy = false;
     this.responseTimeout = responseTimeout;
+    this.loginMessage = null;
   }
 
   status() {
@@ -24,6 +26,7 @@ export class Portal {
       canPrepare: browserOpen && Boolean(this.connection),
       canSend: browserOpen && Boolean(this.connection) && this.prepared,
       accountId: browserOpen ? this.connection?.accountId || null : null,
+      loginMessage: this.loginMessage,
       message: !this.connection
         ? 'Open a new request and verify the form. Nothing has been submitted yet.'
         : !this.prepared
@@ -41,10 +44,33 @@ export class Portal {
     this.opening = true;
     try {
       await this.close();
+      const credentials = await loadCredentials();
       this.browser = await chromium.launch({ channel: 'msedge', headless: false });
       const context = await this.browser.newContext({ locale: 'es-ES', timezoneId: 'Europe/Madrid' });
       this.page = await context.newPage();
+      await this.page.exposeBinding('visualtimeRememberLogin', async ({ frame }, value) => {
+        if (frame !== this.page.mainFrame() || new URL(frame.url()).origin !== 'https://vtportal.visualtime.net') {
+          throw new Error('Login capture is restricted to the portal.');
+        }
+        try {
+          await saveCredentials(value);
+          this.loginMessage = 'Login saved in .credentials (plain text). Next time, the client, user, and password will be filled automatically.';
+        } catch {
+          this.loginMessage = 'Unable to save .credentials. Check folder permissions. Your login has not been remembered.';
+        }
+      });
+      await this.page.addInitScript(observeLogin);
       await this.page.goto(PORTAL_URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
+      if (credentials) {
+        try {
+          await fillLogin(this.page, credentials);
+          this.loginMessage = 'Saved login filled in Edge. Check the client and user, then click the portal Sign in button.';
+        } catch {
+          this.loginMessage = 'Unable to fill the saved login. Complete the portal login manually; .credentials has not been changed.';
+        }
+      } else {
+        this.loginMessage = 'Sign in manually once. After a successful password login, client, user, and password will be saved in .credentials (plain text).';
+      }
       return this.status();
     } catch (error) {
       await this.close();

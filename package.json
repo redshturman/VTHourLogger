@@ -10,7 +10,7 @@
   "scripts": {
     "start": "node src/server.js",
     "test": "node --test",
-    "test:ui": "node scripts/check-ui.js && node scripts/check-portal.js"
+    "test:ui": "node scripts/check-ui.js && node scripts/check-portal.js && node scripts/check-login.js"
   },
   "dependencies": {
     "playwright": "^1.58.0"

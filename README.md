@@ -66,8 +66,12 @@ The app never uses the live clock-in or quick punch button.
 ## Connect and fill in working hours
 
 1. Click **Open portal in Edge**. A separate window opens.
-2. Sign in yourself, including SSO/MFA if required. Do not share your password.
-   The app does not fill in sign-in fields.
+2. On the first run, sign in yourself. After a successful password login, the
+   app saves client, user, and password in `.credentials` as **plain text**.
+   The next time you open the portal, it opens the client dialog, fills and
+   accepts the client, and fills the user and password. You still click Sign in
+   yourself and complete any SSO/MFA. No attendance request is sent by signing in.
+   Do not share your password or the file. SSO-only credentials are not captured.
 3. Open **Request → Missing punch**, shown as **Solicitar → Fichaje no realizado**
    in the Spanish portal. Do not click its Save (disk) button.
 4. Return to the app and click **Connect form**. This read-only check verifies
@@ -105,9 +109,16 @@ not input values, comments, passwords, or cookies. Portal labels remain in their
 original language and may contain identifying text: review the diagnostic
 before sharing. It is saved only when downloaded.
 
-Edge uses a temporary session separate from your regular profile. Cookies,
-passwords, and `storageState` are not exported. Authentication is lost when the
-process closes. Employee impersonation is not supported. Each batch is bound
+Edge uses a temporary session separate from your regular profile. Cookies and
+`storageState` are not exported. Password-login details are saved unencrypted in
+the project-root `.credentials` file (`client`, `user`, `password`). Both that
+file and its temporary write file are excluded in `.gitignore`; this is not
+encryption or protection from backups, file sharing, or other local users.
+Delete `.credentials` to forget the saved login, or edit its three JSON fields.
+Never commit or share it. A failed login does not replace the file. A successful
+password login updates it. Storage/fill failures are shown in the app rather
+than treated as successful. The login helper does not change the portal language.
+Authentication is lost when the process closes. Employee impersonation is not supported. Each batch is bound
 to a fingerprint of the account, company, and service address.
 
 Only the `value` options of `dxDateBox: beginDate` and

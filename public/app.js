@@ -232,6 +232,7 @@ function renderPlan() {
 }
 
 function renderPortal() {
+  $('login-message').textContent = portal.loginMessage || '';
   $('inspect').disabled = !portal.browserOpen || sending || operating;
   $('connect').disabled = !portal.browserOpen || sending || operating;
   $('open-portal').disabled = sending || operating;
