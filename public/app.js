@@ -7,7 +7,7 @@ let sending = false;
 let operating = false;
 
 function setupPickers() {
-  for (const id of ['start', 'end', 'entry', 'exit']) {
+  for (const id of ['start', 'end', 'entry', 'lunchOut', 'lunchIn', 'exit']) {
     const input = $(id);
     const isDate = id === 'start' || id === 'end';
     const wrapper = document.createElement('div');
@@ -123,6 +123,18 @@ function setupPickers() {
 
 setupPickers();
 
+function updateMode() {
+  const lunch = $('mode').value === '4';
+  document.querySelectorAll('[data-lunch]').forEach(label => {
+    label.hidden = !lunch;
+    label.querySelector('input').required = lunch;
+    if (!lunch) label.querySelectorAll('.picker-popup').forEach(popup => { popup.hidden = true; });
+  });
+}
+
+$('mode').addEventListener('change', updateMode);
+updateMode();
+
 function message(text, error = false) {
   for (const id of ['message', 'preview-message', 'connection-message']) {
     $(id).textContent = text;
@@ -152,7 +164,7 @@ function selectedDates() {
 
 function updateSelection() {
   const count = selectedDates().length;
-  $('summary').textContent = `${count} days · ${count * 2} requests`;
+  $('summary').textContent = `${count} days · ${count * Number(plan.mode)} requests`;
   $('all-days').checked = count > 0 && count === plan.days.length;
   $('all-days').indeterminate = count > 0 && count < plan.days.length;
   $('all-days').disabled = plan.days.length === 0 || sending;
@@ -185,6 +197,9 @@ function renderPlan() {
   $('days').replaceChildren();
   const rows = document.createDocumentFragment();
   const weekdays = new Set(plan.days);
+  const lunch = plan.mode === '4';
+  document.querySelectorAll('[data-lunch-column]').forEach(header => { header.hidden = !lunch; });
+  $('requests-per-day').textContent = `${plan.mode} requests per day`;
   for (const day = new Date(`${plan.start}T00:00:00Z`), end = new Date(`${plan.end}T00:00:00Z`);
     day <= end; day.setUTCDate(day.getUTCDate() + 1)) {
     const date = day.toISOString().slice(0, 10);
@@ -203,6 +218,10 @@ function renderPlan() {
     cell(row, '').append(checkbox);
     cell(row, `${formatDate(date)}${weekend ? ' · Weekend' : ''}`);
     cell(row, weekend ? '—' : plan.entry);
+    if (lunch) {
+      cell(row, weekend ? '—' : plan.lunchOut);
+      cell(row, weekend ? '—' : plan.lunchIn);
+    }
     cell(row, weekend ? '—' : plan.exit);
     rows.append(row);
   }
@@ -356,12 +375,14 @@ $('send').addEventListener('click', async () => {
   if (!plan || !portal.canSend || sending || operating) return;
   const dates = selectedDates();
   if (!dates.length) return;
-  if (!window.confirm(`This will attempt ${dates.length * 2} punches across ${dates.length} days, from ${plan.entry} to ${plan.exit}.\n\nAll selected punches will be attempted again, even if the journal records them as submitted, rejected, or uncertain. Failures and existing punches will be recorded, then the batch will continue without retrying that item in this batch.\n\nA previous uncertain attempt may have been saved: check the portal. The journal will not block the new attempt you are confirming now.\n\nConfirm these are the hours you actually worked and that you have excluded days you did not work. Reason and Comments will not be changed.\n\nRequests require supervisor approval. Submit?`)) return;
+  const count = dates.length * Number(plan.mode);
+  const schedule = `Clock in ${plan.entry}${plan.mode === '4' ? ` → Lunch clock out ${plan.lunchOut} → Lunch return ${plan.lunchIn}` : ''} → Clock out ${plan.exit}`;
+  if (!window.confirm(`This will attempt ${count} punches across ${dates.length} days.\n${schedule}\n\nAll selected punches will be attempted again, even if the journal records them as submitted, rejected, or uncertain. Failures and existing punches will be recorded, then the batch will continue without retrying that item in this batch.\n\nA previous uncertain attempt may have been saved: check the portal. The journal will not block the new attempt you are confirming now.\n\nConfirm these are the hours you actually worked and that you have excluded days you did not work. Reason and Comments will not be changed.\n\nRequests require supervisor approval. Submit?`)) return;
   sending = true;
   $('generate').disabled = true;
   [...$('period-form').elements].forEach(element => { element.disabled = true; });
   renderPortal();
-  message(`Submitting ${dates.length * 2} requests. Do not interact with Edge, click its Save button, or close this app. Results will update below.`);
+  message(`Submitting ${count} requests. Do not interact with Edge, click its Save button, or close this app. Results will update below.`);
   const progress = setInterval(async () => {
     try {
       const response = await fetch('/api/state');

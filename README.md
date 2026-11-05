@@ -46,7 +46,15 @@ window: the previous process's browser session is not transferred.
    Select all weekdays affects weekdays only.
 3. Manually uncheck public holidays, leave, and any other days you did not work.
 
-Each selected day creates one clock-in and one clock-out request, with the
+The default **2 punches per day** creates one clock-in and one clock-out request.
+Choose **4 punches per day (lunch break)** to also configure **Lunch clock-out
+time** and **Lunch return time**. Each selected day then submits, in order:
+clock in, lunch clock out, lunch return, final clock out. All four times are
+required and must be strictly increasing within the same day. Switching back to
+2 punches ignores the lunch times. The preview, counts, and confirmation reflect
+the selected mode; changing it requires generating the preview again.
+
+All requests use the
 Attendance type (Presencia in the Spanish portal). Reason and Comments are left
 unchanged. The same schedule applies to all selected days. Only same-day shifts
 are supported: clock-out must be later than clock-in. The app does not consult

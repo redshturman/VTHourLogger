@@ -95,6 +95,35 @@ try {
   await page.locator('#generate').click();
   await page.locator('#message').filter({ hasText: 'Overnight shifts are not supported' }).waitFor();
 
+  await page.locator('#start').fill('02/11/2026');
+  await page.locator('#end').fill('08/11/2026');
+  await page.locator('#entry').fill('08:00');
+  await page.locator('#exit').fill('18:00');
+  assert.equal(await page.locator('#mode').inputValue(), '2');
+  assert.equal(await page.locator('#lunchOut').isHidden(), true);
+  await page.locator('#mode').selectOption('4');
+  assert.equal(await page.locator('#lunchOut').isVisible(), true);
+  assert.equal(await page.locator('#lunchOut').evaluate(input => input.required), true);
+  await page.getByRole('button', { name: 'Choose lunch clock-out time', exact: true }).click();
+  await page.locator('#lunchOut-picker').getByLabel('Hour (24 h)').selectOption('13');
+  await page.locator('#lunchOut-picker').getByRole('button', { name: 'Choose', exact: true }).click();
+  await page.locator('#lunchIn').fill('14:00');
+  await page.locator('#generate').click();
+  await page.locator('#summary').filter({ hasText: '5 days · 20 requests' }).waitFor();
+  assert.deepEqual(await page.locator('#days tr').first().locator('td').allTextContents(),
+    ['', 'Monday, 02/11/2026', '08:00', '13:00', '14:00', '18:00']);
+  assert.equal(await page.locator('#requests-per-day').textContent(), '4 requests per day');
+  await page.locator('#days input').first().uncheck();
+  assert.equal(await page.locator('#summary').textContent(), '4 days · 16 requests');
+  assert.equal(await page.locator('#days input[data-weekend]:checked').count(), 0);
+  await page.locator('#mode').selectOption('2');
+  assert.equal(await page.locator('#preview').isHidden(), true);
+  assert.equal(await page.locator('#lunchOut').isHidden(), true);
+  assert.equal(await page.locator('#lunchOut').evaluate(input => input.required), false);
+  await page.locator('#generate').click();
+  await page.locator('#summary').filter({ hasText: '5 days · 10 requests' }).waitFor();
+  assert.equal(await page.locator('#days tr').first().locator('td').count(), 4);
+
   // Este HTML es una fixture, no evidencia de compatibilidad con el portal real.
   const fixture = await browser.newPage();
   await fixture.route('**/*', route => route.fulfill({

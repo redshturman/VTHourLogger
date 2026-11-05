@@ -25,13 +25,19 @@
     <section class="card">
       <div class="section-title"><span class="step">1</span><h2>Date range and working hours</h2></div>
       <form id="period-form">
+        <label>Punches per day<select id="mode" name="mode">
+          <option value="2">2 punches per day</option>
+          <option value="4">4 punches per day (lunch break)</option>
+        </select></label>
         <div class="fields">
           <label>Start date<input type="text" id="start" name="start" required placeholder="dd/mm/yyyy" pattern="[0-9]{2}/[0-9]{2}/[0-9]{4}" maxlength="10" inputmode="numeric" title="Date in dd/mm/yyyy format"></label>
           <label>End date<input type="text" id="end" name="end" required placeholder="dd/mm/yyyy" pattern="[0-9]{2}/[0-9]{2}/[0-9]{4}" maxlength="10" inputmode="numeric" title="Date in dd/mm/yyyy format"></label>
           <label>Clock-in time<input type="text" id="entry" name="entry" required placeholder="HH:mm" pattern="([01][0-9]|2[0-3]):[0-5][0-9]" maxlength="5" inputmode="numeric" title="24-hour time: HH:mm, from 00:00 to 23:59"></label>
+          <label data-lunch hidden>Lunch clock-out time<input type="text" id="lunchOut" name="lunchOut" placeholder="HH:mm" pattern="([01][0-9]|2[0-3]):[0-5][0-9]" maxlength="5" inputmode="numeric" title="24-hour time: HH:mm, from 00:00 to 23:59"></label>
+          <label data-lunch hidden>Lunch return time<input type="text" id="lunchIn" name="lunchIn" placeholder="HH:mm" pattern="([01][0-9]|2[0-3]):[0-5][0-9]" maxlength="5" inputmode="numeric" title="24-hour time: HH:mm, from 00:00 to 23:59"></label>
           <label>Clock-out time<input type="text" id="exit" name="exit" required placeholder="HH:mm" pattern="([01][0-9]|2[0-3]):[0-5][0-9]" maxlength="5" inputmode="numeric" title="24-hour time: HH:mm, from 00:00 to 23:59"></label>
         </div>
-        <p class="hint">Inclusive dates in dd/mm/yyyy format. Use 24-hour times (HH:mm). One clock-in and clock-out time per day, within the same day. Saturdays and Sundays are excluded.</p>
+        <p class="hint">Inclusive dates in dd/mm/yyyy format. Use 24-hour times (HH:mm). Choose 2 punches, or 4 with a lunch clock-out and return. All times must be in order within the same day. Saturdays and Sundays are excluded.</p>
         <button type="submit" id="generate" class="primary">Generate preview</button>
       </form>
     </section>
@@ -45,13 +51,13 @@
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Include</th><th>Date</th><th>Clock in</th><th>Clock out</th></tr></thead>
+          <thead><tr><th>Include</th><th>Date</th><th>Clock in</th><th data-lunch-column hidden>Lunch clock out</th><th data-lunch-column hidden>Lunch return</th><th>Clock out</th></tr></thead>
           <tbody id="days"></tbody>
         </table>
       </div>
       <p id="empty" hidden>This date range has no weekdays.</p>
       <div class="send-bar">
-        <p>This would create <strong>two requests per day</strong>, with the Attendance type.<br>Reason and Comments are left unchanged. Supervisor approval is required.</p>
+        <p>This would create <strong id="requests-per-day">2 requests per day</strong>, with the Attendance type.<br>Reason and Comments are left unchanged. Supervisor approval is required.</p>
         <div class="actions">
           <button type="button" id="prepare" class="secondary" disabled>Test fill without saving</button>
           <button type="button" id="send" class="primary" disabled aria-describedby="send-help">Confirm and submit</button>

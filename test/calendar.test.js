@@ -64,3 +64,42 @@ test('identificador de duplicado está aislado por cuenta y sentido', () => {
   assert.notEqual(punchKey('account-a', punch), punchKey('account-b', punch));
   assert.notEqual(punchKey('account-a', punch), punchKey('account-a', { ...punch, direction: 'Salida' }));
 });
+
+test('four punches alternate directions in time order and preserve existing journal keys', () => {
+  const normal = createPlan(period);
+  const lunch = createPlan({ ...period, mode: '4', lunchOut: '13:00', lunchIn: '14:00' });
+  const selected = selectPunches(lunch, ['2026-11-06', '2026-11-02', '2026-11-02']);
+  assert.equal(selected.length, 8);
+  assert.deepEqual(selected.slice(0, 4), [
+    { date: period.start, time: '08:00', direction: 'Entrada', type: 'Presencia' },
+    { date: period.start, time: '13:00', direction: 'Salida', type: 'Presencia' },
+    { date: period.start, time: '14:00', direction: 'Entrada', type: 'Presencia' },
+    { date: period.start, time: '17:00', direction: 'Salida', type: 'Presencia' }
+  ]);
+  const original = selectPunches(normal, [period.start]);
+  assert.equal(punchKey('account', original[0]), punchKey('account', selected[0]));
+  assert.equal(punchKey('account', original[1]), punchKey('account', selected[3]));
+  const twoMonths = createPlan({ ...period, start: '2026-09-01', end: '2026-10-31',
+    mode: '4', lunchOut: '13:00', lunchIn: '14:00' });
+  assert.equal(selectPunches(twoMonths, twoMonths.days).length, 176);
+});
+
+test('four punches require valid strictly increasing same-day lunch times', () => {
+  for (const changes of [
+    {}, { lunchOut: '13:00' }, { lunchOut: '8:30', lunchIn: '14:00' },
+    { lunchOut: '13:00', lunchIn: '24:00' },
+    { lunchOut: '08:00', lunchIn: '14:00' },
+    { lunchOut: '07:00', lunchIn: '14:00' },
+    { lunchOut: '14:00', lunchIn: '13:00' },
+    { lunchOut: '13:00', lunchIn: '13:00' },
+    { lunchOut: '13:00', lunchIn: '17:00' },
+    { lunchOut: '13:00', lunchIn: '18:00' }
+  ]) {
+    assert.throws(() => createPlan({ ...period, mode: '4', ...changes }));
+  }
+  assert.throws(() => createPlan({ ...period, mode: '3' }));
+  const normal = createPlan({ ...period, mode: '2', lunchOut: 'bad', lunchIn: 'bad' });
+  assert.equal(normal.mode, '2');
+  assert.equal('lunchOut' in normal, false);
+  assert.equal(selectPunches(normal, [period.start]).length, 2);
+});

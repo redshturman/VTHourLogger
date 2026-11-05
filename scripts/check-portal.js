@@ -433,6 +433,26 @@ try {
     await ui.locator('#send').click();
     await ui.locator('#results-summary').filter({ hasText: '2 submitted' }).waitFor();
     assert.equal(requests, 6);
+    await ui.locator('#send:enabled').waitFor();
+    await ui.locator('#mode').selectOption('4');
+    await ui.locator('#lunchOut').fill('12:30');
+    await ui.locator('#lunchIn').fill('13:15');
+    await ui.locator('#generate').click();
+    await ui.locator('#summary').filter({ hasText: '1 days · 4 requests' }).waitFor();
+    ui.once('dialog', async dialog => {
+      assert.match(dialog.message(), /attempt 4 punches/);
+      assert.match(dialog.message(), /Clock in 08:15 → Lunch clock out 12:30 → Lunch return 13:15 → Clock out 16:45/);
+      await dialog.accept();
+    });
+    await ui.locator('#send').click();
+    await ui.locator('#results-summary').filter({ hasText: '4 submitted' }).waitFor();
+    assert.equal(requests, 10);
+    assert.deepEqual(await ui.locator('#results tr td:nth-child(2)').allTextContents(),
+      ['Clock in', 'Clock out', 'Clock in', 'Clock out']);
+    for (const [index, time] of ['08:15', '12:30', '13:15', '16:45'].entries()) {
+      assert.match(await ui.locator('#results tr').nth(index).textContent(), new RegExp(time));
+      assert.ok(writes[writes.length - 4 + index].includes(`2026-09-01 ${time}`));
+    }
   } finally {
     await ui.close();
     // El portal usa el mismo navegador de todas las fixtures; no cerrar ese navegador desde la app.

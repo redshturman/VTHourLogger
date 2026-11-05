@@ -25,11 +25,19 @@ function parseTime(value, label) {
   return value;
 }
 
-export function createPlan({ start, end, entry, exit } = {}) {
+export function createPlan({ start, end, entry, exit, mode = '2', lunchOut, lunchIn } = {}) {
   const first = parseDate(start, 'Start date');
   const last = parseDate(end, 'End date');
   parseTime(entry, 'Clock-in time');
   parseTime(exit, 'Clock-out time');
+  if (!['2', '4'].includes(mode)) throw new AppError('Choose either 2 or 4 punches per day.');
+  if (mode === '4') {
+    parseTime(lunchOut, 'Lunch clock-out time');
+    parseTime(lunchIn, 'Lunch return time');
+    if (!(entry < lunchOut && lunchOut < lunchIn && lunchIn < exit)) {
+      throw new AppError('Times must be in order on the same day: clock in, lunch clock out, lunch return, clock out.');
+    }
+  }
   if (first > last) throw new AppError('The start date must be on or before the end date.');
   if (entry >= exit) {
     throw new AppError('Clock-out time must be after clock-in time on the same day. Overnight shifts are not supported.');
@@ -40,7 +48,10 @@ export function createPlan({ start, end, entry, exit } = {}) {
       days.push(date.toISOString().slice(0, 10));
     }
   }
-  return { id: randomUUID(), start, end, entry, exit, days };
+  return {
+    id: randomUUID(), start, end, entry, exit, days, mode,
+    ...(mode === '4' ? { lunchOut, lunchIn } : {})
+  };
 }
 
 export function selectPunches(plan, selectedDates) {
@@ -53,6 +64,10 @@ export function selectPunches(plan, selectedDates) {
   }
   return [...new Set(selectedDates)].sort().flatMap(date => [
     { date, time: plan.entry, direction: 'Entrada', type: 'Presencia' },
+    ...(plan.mode === '4' ? [
+      { date, time: plan.lunchOut, direction: 'Salida', type: 'Presencia' },
+      { date, time: plan.lunchIn, direction: 'Entrada', type: 'Presencia' }
+    ] : []),
     { date, time: plan.exit, direction: 'Salida', type: 'Presencia' }
   ]);
 }
