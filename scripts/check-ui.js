@@ -21,6 +21,7 @@ try {
   page.on('pageerror', error => errors.push(error.message));
   await page.goto(url);
   await page.locator('#generate:enabled').waitFor();
+  assert.match(await page.locator('#last-activity').textContent(), /No submission history yet/);
   await page.locator('#start').fill('01/09/2026');
   assert.equal(await page.locator('html').getAttribute('lang'), 'en');
   await page.getByRole('button', { name: 'Choose start date', exact: true }).click();

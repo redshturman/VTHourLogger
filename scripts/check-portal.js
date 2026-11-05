@@ -447,6 +447,7 @@ try {
     await ui.locator('#send').click();
     await ui.locator('#results-summary').filter({ hasText: '4 submitted' }).waitFor();
     assert.equal(requests, 10);
+    await ui.locator('#last-activity').filter({ hasText: '01/09/2026 · 4 submitted' }).waitFor();
     assert.deepEqual(await ui.locator('#results tr td:nth-child(2)').allTextContents(),
       ['Clock in', 'Clock out', 'Clock in', 'Clock out']);
     for (const [index, time] of ['08:15', '12:30', '13:15', '16:45'].entries()) {

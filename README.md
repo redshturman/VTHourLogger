@@ -38,6 +38,16 @@ window: the previous process's browser session is not transferred.
 
 ## Prepare a date range
 
+The **Last day tracked by this app** card reads `data\journal.json` locally
+on startup and after submission. No portal window or login is needed. It shows
+the latest attendance date recorded in the journal and the saved outcomes for
+that date, plus the latest date with a locally recorded successful submission.
+Preview/test fill does not advance it. The history persists across restarts.
+It includes all accounts used in this app copy, not manual entries or later
+portal deletions. It is not proof of approval, a complete day, or a gap-free
+period; failures and uncertain outcomes must be reviewed before choosing dates.
+The journal never suppresses retries, and this card does not select dates for you.
+
 1. Enter inclusive start and end dates in **dd/mm/yyyy**, and the hours actually
    worked in **24-hour HH:mm** (for example, 08:00 and 18:00). Use Calendar to
    choose a date and Time to select the hour and minute, or type the values.

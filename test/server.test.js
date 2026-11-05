@@ -19,6 +19,7 @@ test('HTTP local: vista previa, selección y envío bloqueado sin solicitudes re
   });
   const state = await (await fetch(`${url}/api/state`)).json();
   assert.equal(state.portal.canSend, false);
+  assert.equal(state.activity, null);
   const post = (route, body, headers = {}) => fetch(`${url}${route}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-Visualtime-Token': state.token, ...headers },

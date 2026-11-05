@@ -56,7 +56,7 @@ export async function createApp({ journalPath = path.join(root, 'data', 'journal
         throw new AppError('Origin not allowed.', 403);
       }
       if (request.url === '/api/state' && request.method === 'GET') {
-        return json(200, { token, portal: portal.status(), batch: { busy: sender.busy, results: sender.results } });
+        return json(200, { token, portal: portal.status(), activity: journal.activity(), batch: { busy: sender.busy, results: sender.results } });
       }
       if (request.url.startsWith('/api/')) {
         if (request.method !== 'POST') throw new AppError('Method not allowed.', 405);

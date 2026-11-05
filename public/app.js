@@ -186,6 +186,12 @@ function formatDetail(text) {
   return text.replace(/\b(\d{4})-(\d{2})-(\d{2})\b/g, '$3/$2/$1');
 }
 
+function renderActivity(activity) {
+  $('last-activity').textContent = activity
+    ? `${formatDetail(activity.latestDate)} · ${activity.submitted} submitted · ${activity.existing} reported existing · ${activity.failed} rejected · ${activity.uncertain} uncertain · ${activity.notAttempted} not attempted.\nLatest date with a locally recorded successful submission: ${activity.latestSubmittedDate ? formatDetail(activity.latestSubmittedDate) : 'None'}.`
+    : 'No submission history yet. Generating a preview or filling without saving does not update this history.';
+}
+
 function cell(row, text) {
   const td = document.createElement('td');
   td.textContent = text;
@@ -389,6 +395,7 @@ $('send').addEventListener('click', async () => {
       const response = await fetch('/api/state');
       if (!response.ok) throw new Error('Unable to retrieve progress.');
       const state = await response.json();
+      renderActivity(state.activity);
       if (state.batch?.results.length) renderResults(state.batch.results);
     } catch (error) {
       message(`Unable to retrieve progress: ${error.message}. Do not retry or close the app; wait for the result.`, true);
@@ -409,6 +416,7 @@ $('send').addEventListener('click', async () => {
       const response = await fetch('/api/state');
       if (!response.ok) throw new Error('Unable to retrieve the final status.');
       const state = await response.json();
+      renderActivity(state.activity);
       portal = state.portal;
     } catch (error) {
       portal.canSend = false;
@@ -425,6 +433,7 @@ async function init() {
     const response = await fetch('/api/state');
     if (!response.ok) throw new Error('Unable to connect to the local app.');
     const state = await response.json();
+    renderActivity(state.activity);
     token = state.token;
     portal = state.portal;
     if (state.batch?.results.length) renderResults(state.batch.results);
@@ -441,6 +450,7 @@ async function init() {
           const response = await fetch('/api/state');
           if (!response.ok) throw new Error('Unable to retrieve progress.');
           const current = await response.json();
+          renderActivity(current.activity);
           portal = current.portal;
           renderResults(current.batch.results);
           if (!current.batch.busy) {
@@ -456,6 +466,7 @@ async function init() {
       }, 1000);
     }
   } catch (error) {
+    $('last-activity').textContent = 'Local history could not be loaded. Check the app connection.';
     message(`${error.message} Check the VisualTimeSetter console and reload the page.`, true);
   }
 }

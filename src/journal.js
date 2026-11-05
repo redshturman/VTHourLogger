@@ -26,6 +26,25 @@ export class Journal {
     return this.records[key];
   }
 
+  activity() {
+    const records = Object.values(this.records).filter(record =>
+      typeof record.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(record.date));
+    if (!records.length) return null;
+    const latestDate = records.map(record => record.date).sort().at(-1);
+    const latest = records.filter(record => record.date === latestDate);
+    const count = status => latest.filter(record => record.status === status).length;
+    return {
+      latestDate,
+      latestSubmittedDate: records.filter(record => record.status === 'submitted')
+        .map(record => record.date).sort().at(-1) || null,
+      submitted: count('submitted'),
+      existing: count('existing'),
+      failed: count('failed'),
+      uncertain: count('uncertain'),
+      notAttempted: count('not_attempted')
+    };
+  }
+
   async set(key, record) {
     const records = { ...this.records, [key]: { ...record, updatedAt: new Date().toISOString() } };
     await mkdir(path.dirname(this.filename), { recursive: true });
