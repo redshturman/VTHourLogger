@@ -2,9 +2,9 @@
 export function installSaveObserver({ id, punch, reason, remarks }) {
   const prototype = window.WebServiceRobotics?.prototype;
   if (!prototype || typeof prototype.saveForbbidenPunch !== 'function') {
-    throw new Error('No se puede observar el guardado de esta versión del portal.');
+    throw new Error('Unable to observe saving in this portal version.');
   }
-  if (window.__visualtimeSaveObserver) throw new Error('Hay otra observación de guardado activa.');
+  if (window.__visualtimeSaveObserver) throw new Error('Another save observer is already active.');
   const original = prototype.saveForbbidenPunch;
   const state = { id, calls: 0, receipt: null, blocked: null, restores: [] };
   const wrapper = function (date, cause, comments, direction, acceptWarning, tcType) {
@@ -14,12 +14,12 @@ export function installSaveObserver({ id, punch, reason, remarks }) {
         String(cause) !== reason || comments !== remarks ||
         direction !== (punch.direction === 'Entrada' ? 'E' : 'S') ||
         acceptWarning !== false || String(tcType) !== '0') {
-      state.blocked = 'El portal intentó repetir el guardado o enviar datos diferentes. Se bloqueó antes de enviarlos.';
+      state.blocked = 'The portal attempted to repeat a save or submit different data. It was blocked before submission.';
       return;
     }
     const success = this.onSuccessCall;
     if (typeof success !== 'function') {
-      state.blocked = 'No se encontró el callback de confirmación del portal. No se envió el guardado.';
+      state.blocked = 'The portal confirmation callback was not found. The save was not submitted.';
       return;
     }
     const callback = function (receipt) {

@@ -1,190 +1,177 @@
 # VisualTimeSetter
 
-Aplicación local e independiente para preparar solicitudes históricas de
-**fichaje no realizado** en Cegid Visualtime Portal.
+Independent local app for preparing historical **missing punch** requests in
+Cegid Visualtime Portal.
 
-**Estado real: adaptador de carga y guardado implementado a partir del
-diagnóstico autenticado del usuario y del JavaScript público del portal.
-El usuario ha confirmado guardados reales, pero también un rechazo `-50`
-automatizado para una solicitud que después pudo guardar manualmente.
-La corrección de aislamiento entre fichajes aún requiere confirmación en el
-portal real.**
-Se usa el botón Guardar del formulario, no una API llamada directamente ni
-el fichaje rápido. La integración se comprueba al conectar y exige una prueba
-de carga sin guardar antes de habilitar la confirmación del envío.
+The interface, calendar, instructions, and app-generated messages are in English.
+Dates use **dd/mm/yyyy** and times use **24-hour HH:mm**, regardless of browser
+locale. The app does not change the Visualtime portal's language. Original portal
+labels and error details are retained when needed for navigation or diagnosis.
 
-## Arrancar en Windows
+**Integration status:** the adapter uses the user's authenticated form diagnostic
+and the portal's public JavaScript. The user has confirmed real submissions, but
+also encountered an automated `-50` rejection for a request that could then be
+saved manually. Subsequent fixes isolate each form with a full document reload
+and read the validated request's network response rather than relying solely on
+the portal callback. Automated checks use intercepted fixtures, not real writes.
+They do not prove compatibility with the live account.
 
-Requiere Node.js 20 o posterior y Microsoft Edge instalado.
+## Start on Windows
 
-Haz doble clic en `Iniciar.cmd`: instala las dependencias si faltan, inicia el
-servidor y abre `http://127.0.0.1:4317`. Mantén la consola abierta mientras lo
-usas. Cierra con Ctrl+C. También puedes ejecutar:
+Requires Node.js 20 or later and Microsoft Edge.
+
+Double-click `start.cmd`. It installs dependencies if missing, starts the server,
+and opens `http://127.0.0.1:4317`. Keep the console open while using the app.
+Close it with Ctrl+C. Alternatively:
 
 ```powershell
 npm install
 npm start
 ```
 
-El servidor escucha exclusivamente en `127.0.0.1`, no en la red local.
-No ejecutes dos copias simultáneas ni compartas el puerto mediante un túnel.
-Solo debes iniciar una copia desde esta carpeta.
+The server listens only on `127.0.0.1`, not on the local network. Run only one
+copy from this folder. Do not share the port through a tunnel.
 
-## Preparar el periodo
+After server-side code changes, stop the old console with Ctrl+C, run
+`start.cmd` again, and reload the interface. Reconnect using the new Edge
+window: the previous process's browser session is not transferred.
 
-1. Introduce fecha inicial y final inclusivas en **dd/mm/aaaa**, y las horas
-   realmente trabajadas en formato de **24 horas HH:mm** (por ejemplo, 08:00
-   y 18:00). Los campos no dependen del formato regional del navegador.
-   Usa Calendario para elegir una fecha y Hora para seleccionar hora y minuto
-   en los desplegables, o escribe directamente el valor.
-2. Genera la vista previa. Los lunes a viernes aparecen marcados; sábados y
-   domingos se muestran desmarcados y bloqueados, sin horas y nunca se envían.
-   Seleccionar todos solo afecta a los días laborables.
-3. Desmarca manualmente vacaciones, festivos y cualquier otro día que no corresponda.
+## Prepare a date range
 
-Cada día seleccionado representa una Entrada y una Salida de tipo Presencia.
-No se añaden ni modifican Motivo u Observaciones. Un mismo horario se aplica a
-todos los días seleccionados. Esta versión admite solo turnos dentro del mismo
-día; rechaza salidas iguales o anteriores a la entrada para no asignarlas a una
-fecha incorrecta. No consulta festivos ni fichajes existentes en el portal.
+1. Enter inclusive start and end dates in **dd/mm/yyyy**, and the hours actually
+   worked in **24-hour HH:mm** (for example, 08:00 and 18:00). Use Calendar to
+   choose a date and Time to select the hour and minute, or type the values.
+2. Generate the preview. Weekdays are checked by default. Saturdays and Sundays
+   are displayed unchecked, disabled, and without times; they are never submitted.
+   Select all weekdays affects weekdays only.
+3. Manually uncheck public holidays, leave, and any other days you did not work.
 
-Las solicitudes requieren validación del supervisor: **enviada no significa
-aprobada**. No se utiliza el botón Entrar ni el fichaje rápido del día actual.
+Each selected day creates one clock-in and one clock-out request, with the
+Attendance type (Presencia in the Spanish portal). Reason and Comments are left
+unchanged. The same schedule applies to all selected days. Only same-day shifts
+are supported: clock-out must be later than clock-in. The app does not consult
+holiday calendars or look up existing punches in advance.
 
-## Conectar y cargar las horas
+Requests require supervisor approval: **submitted does not mean approved**.
+The app never uses the live clock-in or quick punch button.
 
-1. En la aplicación, pulsa **Abrir portal en Edge**. Se abre una ventana separada.
-2. Inicia sesión tú mismo en Visualtime, también con SSO/MFA si corresponde.
-   No compartas tu contraseña. La aplicación no rellena el inicio de sesión.
-3. Abre **Solicitar → Fichaje no realizado**, sin pulsar el disquete de guardar.
-4. Vuelve a la aplicación y pulsa **Conectar formulario**. Se comprueban en
-   modo de solo lectura la cuenta personal, la nueva solicitud, los controles
-   DevExtreme y que el tipo sea Presencia y Motivo/Observaciones estén vacíos.
-   El resultado aparece junto al botón. Presencia se comprueba por su ID
-   del widget (`1` numérico o textual), no por el primer input del desplegable,
-   que DevExtreme puede generar como campo oculto.
-5. Con el periodo generado y los días revisados, pulsa **Probar carga sin
-   guardar**. Carga la primera entrada seleccionada. Mira los campos en Edge:
-   fecha, hora y sentido. No pulses el disquete.
-6. Vuelve a VisualTimeSetter y pulsa **Confirmar y enviar** únicamente si los
-   datos son correctos y quieres enviar el lote. Se volverá a intentar todo lo
-   seleccionado aunque conste como enviado o existente en el registro local.
-   No manipules Edge durante el envío. El progreso aparece por solicitud.
+## Connect and fill in working hours
 
-No empieza a cargar automáticamente al abrir el portal ni al iniciar sesión.
-Antes de cada carga se recarga completamente el documento en la ruta de la
-nueva solicitud. No se reutilizan las vistas ni los servicios que el enrutador
-de Visualtime mantiene en memoria. Esto incluye Entrada y Salida del mismo día
-y la primera carga sin guardar. Como Visualtime vuelve a Inicio al arrancar,
-primero se espera ese arranque autenticado y después se navega al formulario;
-no se depende de que respete el hash anterior a la recarga.
-Se vuelve a verificar la cuenta y se espera a
-que estén visibles e inicializados todos los controles, incluido Sentido:
-el cambio de ruta por sí solo no indica que el formulario haya terminado de
-renderizar. Si la recarga exige iniciar sesión de nuevo o cambia la cuenta,
-no se pulsa Guardar.
-Cuando actualices el código, cierra con Ctrl+C la consola anterior y vuelve a
-ejecutar `Iniciar.cmd`; recarga la interfaz y conecta la nueva ventana de Edge.
-La sesión del navegador anterior no se transfiere al nuevo proceso.
-Si un lote se detuvo con solicitudes no intentadas, conserva `data\journal.json`,
-genera el mismo periodo con las mismas horas y vuelve a conectar, probar la
-carga y confirmar. Se vuelve a intentar toda la selección; el portal decide
-cuáles siguen existiendo. Revisa los resultados inciertos en el portal: un
-nuevo envío confirmado también los volverá a intentar.
+1. Click **Open portal in Edge**. A separate window opens.
+2. Sign in yourself, including SSO/MFA if required. Do not share your password.
+   The app does not fill in sign-in fields.
+3. Open **Request → Missing punch**, shown as **Solicitar → Fichaje no realizado**
+   in the Spanish portal. Do not click its Save (disk) button.
+4. Return to the app and click **Connect form**. This read-only check verifies
+   the personal account, new-request form, DevExtreme controls, Attendance type,
+   and empty Reason/Comments. The result appears next to the button. Attendance
+   is checked using widget ID `1` (numeric or string), not the first input,
+   because DevExtreme may insert a hidden input.
+5. Review the date range and selection, then click **Test fill without saving**.
+   The first selected clock-in is filled in Edge. Check its date, time, and
+   direction. Do not click the portal's Save button.
+6. Return to VisualTimeSetter and click **Confirm and submit** only if the data
+   is correct and you want to submit the batch. All selected punches are
+   attempted again, even if the local journal records them as submitted or
+   existing. Do not interact with Edge during submission. Progress and results
+   are shown for each request.
 
-El botón adicional **Inspeccionar formulario (solo lectura)** sirve para
-diagnosticar cambios del portal. No carga campos ni guarda solicitudes.
-Extrae metadatos de controles visibles, etiquetas y botones, no los
-valores de inputs, observaciones, contraseñas o cookies. Puede contener textos
-identificativos del portal: revísalo antes de compartirlo. El diagnóstico solo
-se guarda si lo descargas.
+Opening the browser or signing in never starts submission automatically.
 
-La sesión de Edge es temporal, no tu perfil habitual. No se exportan cookies,
-contraseñas ni `storageState`. Al cerrar el proceso se pierde la autenticación.
-Se comprueba que no hay suplantación de empleado y se vincula el lote a una
-huella de cuenta/empresa/servidor. No se leen ni exportan tokens para guardar.
-Solo cambian las opciones `value` de `dxDateBox: beginDate` y
-`dxSelectBox: cmbRequestValue1`; después se comprueban todos los campos.
-No se borran Motivo u Observaciones si contienen algo: se bloquea el envío.
-La zona del navegador automatizado es Europe/Madrid; se rechazan horas futuras
-o inexistentes por cambio de horario.
+Before each fill, the entire document is reloaded to avoid reusing cached portal
+views and service instances. This includes both punches on the same day and the
+test fill. Since Visualtime navigates to Home on startup, the adapter first waits
+for authenticated startup, then navigates to the new-request form. It rechecks
+the account and waits for all controls, including Direction, to be visible,
+initialized, and editable. A route change alone is not enough. If sign-in is
+required again or the account changes, Save is not clicked.
 
-La fuente pública del portal identifica `SaveRequestForbiddenPunch` y un acuse
-`d.Status === 0`. El adaptador solo pulsa el botón Guardar; observa su petición,
-resuelve la ruta relativa del servicio (`/api/Portalsvcx.svc`) contra la URL
-actual del portal,
-comprueba fecha/hora/sentido/Motivo/Observaciones y que no acepta advertencias,
-y lee el acuse JSON de la respuesta a esa misma petición validada, identificada
-por su objeto de petición (no por una URL aproximada). También observa el callback
-`onSuccessCall` de `saveForbbidenPunch` y comprueba su código si lo recibe; la
-ausencia de ese callback no impide reconocer la respuesta del servidor ni cerrar
-el aviso de duplicado. La observación
-se instala antes del clic y se retira al terminar; no llama al servicio por su
-cuenta y bloquea invocaciones repetidas o con parámetros diferentes. El control
-de la petición sigue comprobando el origen, la ruta y los campos multipart,
-sin depender de que una URL de respuesta coincida literalmente (puede incluir
-una query). Exige el acuse más la salida del formulario antes de avanzar. Si el servidor
-no devuelve un identificador de solicitud, el registro conserva una descripción
-del acuse, **no inventa un ID oficial**. No basta con que desaparezca el formulario
-ni con un HTTP 200. No se aceptan advertencias automáticamente.
-Si el portal responde `PunchWithoutRequest: true`, informa de que el portal ha
-registrado directamente el fichaje y detiene el lote para revisión.
+The browser time zone is Europe/Madrid. Future times and nonexistent local times
+caused by daylight-saving transitions are rejected.
 
-## Duplicados y resultados
+## Diagnostics and safeguards
 
-El motor y el adaptador se han probado con respuestas interceptadas, sin
-enviar solicitudes reales. Antes de guardar:
+**Inspect form (read-only)** diagnoses portal changes without filling fields or
+saving requests. It extracts metadata for visible controls, labels, and buttons,
+not input values, comments, passwords, or cookies. Portal labels remain in their
+original language and may contain identifying text: review the diagnostic
+before sharing. It is saved only when downloaded.
 
-- Requiere confirmación explícita y una cuenta identificada por un adaptador
-  conectada y una prueba de carga sin guardar; nunca basta con que el navegador
-  esté abierto.
-- Registra en `data\journal.json` una intención incierta antes de cada escritura.
-  Una solicitud solo se marca enviada si hay confirmación verificable.
-- El journal no es la fuente de verdad sobre la existencia de fichajes:
-  cada nuevo envío confirmado vuelve a intentar todos los elementos seleccionados,
-  incluidos enviados, existentes, rechazados e inciertos, incluso tras reiniciar.
-  Así pueden recrearse registros borrados en el portal sin borrar el journal.
-- Si el portal devuelve `-50` (solicitud repetida) o `-51` (fichaje existente),
-  espera a que aparezca el botón Cerrar visible, cierra únicamente el aviso,
-  y continúa con el siguiente sin repetir ni aceptar advertencias. `-50` se
-  registra como rechazado con el texto visible del aviso, no como prueba de
-  una solicitud existente: puede no localizarse en la lista. Solo `-51` se
-  registra como existente según la respuesta del portal. No lo cuenta como una
-  nueva solicitud enviada ni como aprobación. Un duplicado antiguo
-  no prueba que siga existiendo.
-- Cada elemento se intenta una sola vez por lote. Si falla, se registra como
-  rechazado, incierto o no intentado y se pasa al siguiente; no se repite en
-  bucle. En un nuevo lote confirmado se vuelve a intentar, cualquiera que sea
-  su estado anterior. El journal conserva información, nunca decide si existe.
-- Antes de preparar el siguiente, espera a que el portal deje de tener peticiones
-  pendientes y puede cerrar avisos mediante Cerrar. No acepta advertencias ni
-  solapa escrituras pendientes. Si la sesión o los controles no permiten enviar,
-  lo informa como no intentado; los fallos de disco detienen el lote.
-- Si no puede persistir la intención, no intenta escribir en el portal.
+Edge uses a temporary session separate from your regular profile. Cookies,
+passwords, and `storageState` are not exported. Authentication is lost when the
+process closes. Employee impersonation is not supported. Each batch is bound
+to a fingerprint of the account, company, and service address.
 
-No necesitas borrar ni editar el registro para reintentar. Revisa primero el
-portal ante un resultado incierto: puede haberse guardado aunque no se recibiera
-el acuse. La confirmación del nuevo lote advierte expresamente de este riesgo.
-El registro contiene fechas, horarios y referencias de solicitudes, no
-credenciales. Consérvalo privado. No consulta por adelantado los registros del
-portal; solo marca existente tras la respuesta actual `-51`; `-50` es un rechazo. Esto
-también cubre registros creados manualmente o desde otro equipo. No considera
-duplicado un fichaje de hora diferente: revisa siempre fechas y horas.
+Only the `value` options of `dxDateBox: beginDate` and
+`dxSelectBox: cmbRequestValue1` are changed, and all fields are checked afterward.
+Nonempty Reason/Comments are never cleared: submission is blocked instead.
 
-## Validación local sin solicitudes reales
+Saving uses the actual form button, not a direct API invocation. The portal's
+public code identifies `SaveRequestForbiddenPunch` and success code `d.Status=0`.
+The adapter resolves the relative service URL against the current portal URL.
+It validates the outgoing multipart date, time, direction, reason, comments,
+Attendance type, and `acceptWarning=false` before releasing the request.
+Repeated or unexpected invocations are blocked.
+
+The acknowledgement is read from the response to that exact validated request
+object, allowing a query string without confusing unrelated responses. The
+`onSuccessCall` callback is also observed and its status is checked if received.
+A missing callback does not prevent recognizing the server response or closing
+a duplicate warning. Observers and network guards are removed afterward.
+
+Success requires a valid acknowledgement and leaving the form; HTTP 200 or the
+form disappearing alone is insufficient. If no official request identifier is
+returned, the journal stores an acknowledgement description, not an invented ID.
+Warnings are never accepted automatically. `PunchWithoutRequest=true` is reported
+as a direct punch and stops the batch for review.
+
+## Duplicates, retries, and the journal
+
+- Explicit confirmation, an identified account, and a successful test fill are
+  required before submitting. An open browser alone is insufficient.
+- Before each write, an uncertain intent is persisted atomically in
+  `data\journal.json`. If that fails, the portal write is not attempted.
+- The journal is history, not proof that a punch still exists. Every newly
+  confirmed batch attempts the entire selection, including previously submitted,
+  existing, rejected, and uncertain items, even after restarting. This allows
+  recreating punches deleted in the portal without deleting the journal.
+- `-50` means the portal rejected a repeated request. It is recorded as rejected
+  with the original visible warning, not as proof of a visible existing request.
+  `-51` is recorded as existing according to the portal's current response.
+  Neither is counted as a newly submitted or approved request.
+- The adapter waits for the duplicate dialog's Close button (Cerrar in the
+  Spanish portal), closes only that warning, and continues. It does not accept
+  warnings or retry the item within the same batch.
+- Each item is attempted once per batch. Failures are recorded as rejected,
+  uncertain, or not attempted, and the next item is attempted. A newly confirmed
+  batch retries all selected items regardless of previous status.
+- Pending portal requests are allowed to finish before preparing the next item.
+  Writes are not overlapped. Session/control failures are reported explicitly.
+  Journal persistence failures stop the batch.
+
+For a stopped batch, keep the journal, generate the intended range again, review
+the portal, reconnect, test fill, and explicitly confirm only the intended
+selection. An uncertain attempt may already have been saved; check the portal
+before confirming another attempt. The confirmation warns about this risk.
+
+The journal contains attendance dates, times, and request references, not
+credentials. Keep it private. Existing history is not rewritten when the
+interface language changes. Internal direction/type values and journal keys
+remain compatible with earlier versions; only their displayed labels change.
+
+## Local checks without real submissions
 
 ```powershell
 npm test
 npm run test:ui
 ```
 
-Pruebas con Node y Edge en modo headless: calendario inclusivo, dos meses,
-exclusión, años bisiestos y cambios de hora; selección y confirmación; persistencia,
-duplicados, interrupciones y fallos de disco; rutas HTTP y bloqueo de escrituras;
-interfaz de escritorio/móvil, inspección y guardado de una fixture interceptada;
-acuse válido, respuesta inválida, datos de salida alterados, cambio de cuenta,
-rechazo y registro directo del servidor. Todas las peticiones de la fixture se
-interceptan, sin llegar al portal real.
-`test-results\preview.png` contiene una captura de la vista previa de prueba.
-Estas pruebas **no acreditan compatibilidad con el portal real** y no crean
-solicitudes allí.
+Node and headless Edge checks cover inclusive date ranges, two-month periods,
+weekday selection, disabled weekends, leap years, daylight-saving transitions,
+English labels and errors, dd/mm/yyyy dates, 24-hour pickers, mobile layout,
+confirmation/cancellation, persistence, duplicate handling, continuation after
+failure, account changes, and outgoing data tampering.
+
+All fixture requests are intercepted and never reach the real portal.
+`test-results\preview.png` contains a test preview screenshot.
+These checks do not create real requests or establish live-portal compatibility.

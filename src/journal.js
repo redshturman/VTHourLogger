@@ -17,7 +17,7 @@ export class Journal {
     }
     const data = JSON.parse(text);
     if (data.version !== 1 || !data.records || typeof data.records !== 'object' || Array.isArray(data.records)) {
-      throw new Error('El registro local está dañado. No se permite continuar con envíos.');
+      throw new Error('The local journal is damaged. Submissions cannot continue.');
     }
     this.records = data.records;
   }

@@ -17,8 +17,8 @@ function setupPickers() {
     const toggle = document.createElement('button');
     toggle.type = 'button';
     toggle.className = 'secondary picker-toggle';
-    toggle.textContent = isDate ? 'Calendario' : 'Hora';
-    toggle.setAttribute('aria-label', `Elegir ${input.closest('label').firstChild.textContent.trim().toLowerCase()}`);
+    toggle.textContent = isDate ? 'Calendar' : 'Time';
+    toggle.setAttribute('aria-label', `Choose ${input.closest('label').firstChild.textContent.trim().toLowerCase()}`);
     const popup = document.createElement('div');
     popup.id = `${id}-picker`;
     popup.className = 'picker-popup';
@@ -57,15 +57,15 @@ function setupPickers() {
       const header = document.createElement('div');
       header.className = 'calendar-header';
       const title = document.createElement('strong');
-      title.textContent = new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeric' }).format(month);
+      title.textContent = new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric' }).format(month);
       const move = offset => {
         month.setMonth(month.getMonth() + offset);
         renderCalendar();
       };
-      header.append(button('<', () => move(-1), 'Mes anterior'), title, button('>', () => move(1), 'Mes siguiente'));
+      header.append(button('<', () => move(-1), 'Previous month'), title, button('>', () => move(1), 'Next month'));
       const grid = document.createElement('div');
       grid.className = 'calendar-grid';
-      for (const day of ['L', 'M', 'X', 'J', 'V', 'S', 'D']) {
+      for (const day of ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']) {
         const label = document.createElement('span');
         label.textContent = day;
         grid.append(label);
@@ -93,7 +93,7 @@ function setupPickers() {
         const values = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(input.value);
         const selects = [24, 60].map((count, index) => {
           const label = document.createElement('label');
-          label.textContent = index === 0 ? 'Hora (24 h)' : 'Minuto';
+          label.textContent = index === 0 ? 'Hour (24 h)' : 'Minute';
           const select = document.createElement('select');
           select.setAttribute('aria-label', label.textContent);
           for (let value = 0; value < count; value++) select.add(new Option(pad(value), pad(value)));
@@ -102,7 +102,7 @@ function setupPickers() {
           popup.append(label);
           return select;
         });
-        popup.append(button('Elegir', () => choose(`${selects[0].value}:${selects[1].value}`)));
+        popup.append(button('Choose', () => choose(`${selects[0].value}:${selects[1].value}`)));
       }
       popup.hidden = false;
       toggle.setAttribute('aria-expanded', 'true');
@@ -139,7 +139,7 @@ async function api(url, data) {
   });
   const body = await response.json();
   if (!response.ok) {
-    const error = new Error(body.error || 'No se ha podido completar la operación.');
+    const error = new Error(body.error || 'The operation could not be completed.');
     error.results = body.results;
     throw error;
   }
@@ -152,7 +152,7 @@ function selectedDates() {
 
 function updateSelection() {
   const count = selectedDates().length;
-  $('summary').textContent = `${count} días · ${count * 2} solicitudes`;
+  $('summary').textContent = `${count} days · ${count * 2} requests`;
   $('all-days').checked = count > 0 && count === plan.days.length;
   $('all-days').indeterminate = count > 0 && count < plan.days.length;
   $('all-days').disabled = plan.days.length === 0 || sending;
@@ -165,7 +165,7 @@ function updateSelection() {
 }
 
 function formatDate(date) {
-  return new Intl.DateTimeFormat('es-ES', {
+  return new Intl.DateTimeFormat('en-GB', {
     weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC'
   }).format(new Date(`${date}T00:00:00Z`));
 }
@@ -198,10 +198,10 @@ function renderPlan() {
       checkbox.dataset.weekend = '';
       checkbox.disabled = true;
     }
-    checkbox.setAttribute('aria-label', `Incluir ${formatDate(date)}`);
+    checkbox.setAttribute('aria-label', `Include ${formatDate(date)}`);
     checkbox.addEventListener('change', updateSelection);
     cell(row, '').append(checkbox);
-    cell(row, `${formatDate(date)}${weekend ? ' · Fin de semana' : ''}`);
+    cell(row, `${formatDate(date)}${weekend ? ' · Weekend' : ''}`);
     cell(row, weekend ? '—' : plan.entry);
     cell(row, weekend ? '—' : plan.exit);
     rows.append(row);
@@ -216,27 +216,27 @@ function renderPortal() {
   $('inspect').disabled = !portal.browserOpen || sending || operating;
   $('connect').disabled = !portal.browserOpen || sending || operating;
   $('open-portal').disabled = sending || operating;
-  $('connection-badge').textContent = portal.canSend ? 'Listo' : portal.canPrepare ? 'Conectado' : 'Pendiente';
-  $('integration-title').textContent = sending ? 'Enviando solicitudes · no cierres la aplicación'
-    : portal.canSend ? 'Carga comprobada · pendiente de tu confirmación'
-      : portal.canPrepare ? 'Conectado · prueba la carga sin guardar' : 'Conecta el formulario para empezar';
-  $('send-help').textContent = portal.message || 'Conecta el formulario para empezar.';
+  $('connection-badge').textContent = portal.canSend ? 'Ready' : portal.canPrepare ? 'Connected' : 'Pending';
+  $('integration-title').textContent = sending ? 'Submitting requests · do not close the app'
+    : portal.canSend ? 'Test fill complete · awaiting your confirmation'
+      : portal.canPrepare ? 'Connected · test filling without saving' : 'Connect the form to get started';
+  $('send-help').textContent = portal.message || 'Connect the form to get started.';
   if (plan) updateSelection();
 }
 
 function renderResults(results) {
   $('results').replaceChildren();
-  const names = { sending: 'Enviando…', submitted: 'Enviada', skipped: 'Omitida (el portal indica que existe)', failed: 'Rechazada', uncertain: 'Incierto · revisar portal', not_attempted: 'No intentada' };
+  const names = { sending: 'Submitting…', submitted: 'Submitted', skipped: 'Skipped (portal reports it exists)', failed: 'Rejected', uncertain: 'Uncertain · check portal', not_attempted: 'Not attempted' };
   for (const result of results) {
     const row = document.createElement('tr');
     cell(row, `${formatDetail(result.date)} ${result.time}`);
-    cell(row, result.direction);
+    cell(row, result.direction === 'Entrada' ? 'Clock in' : result.direction === 'Salida' ? 'Clock out' : result.direction);
     cell(row, names[result.status] || result.status);
-    cell(row, formatDetail(result.message || 'No se ha intentado el envío.'));
+    cell(row, formatDetail(result.message || 'Submission has not been attempted.'));
     $('results').append(row);
   }
   const count = status => results.filter(result => result.status === status).length;
-  $('results-summary').textContent = `${count('submitted')} enviadas · ${count('skipped')} omitidas · ${count('sending')} en curso · ${count('failed')} rechazadas · ${count('uncertain')} inciertas · ${count('not_attempted')} no intentadas. Enviada no significa aprobada.`;
+  $('results-summary').textContent = `${count('submitted')} submitted · ${count('skipped')} skipped · ${count('sending')} in progress · ${count('failed')} rejected · ${count('uncertain')} uncertain · ${count('not_attempted')} not attempted. Submitted does not mean approved.`;
   $('results-panel').hidden = false;
 }
 
@@ -273,11 +273,11 @@ $('all-days').addEventListener('change', event => {
 
 $('open-portal').addEventListener('click', async () => {
   $('open-portal').disabled = true;
-  message('Abriendo Edge. Inicia sesión en la ventana del portal, no en esta aplicación.');
+  message('Opening Edge. Sign in in the portal window, not in this app.');
   try {
     portal = await api('/api/portal/open');
     renderPortal();
-    message('En Edge, abre Solicitar → Fichaje no realizado y vuelve aquí. No pulses Guardar.');
+    message('In Edge, open Request → Missing punch (Solicitar → Fichaje no realizado in Spanish), then return here. Do not click Save.');
   } catch (error) {
     message(error.message, true);
   } finally {
@@ -292,7 +292,7 @@ $('inspect').addEventListener('click', async () => {
     $('diagnostic-content').textContent = JSON.stringify(diagnostic, null, 2);
     $('diagnostic').hidden = false;
     $('diagnostic').open = true;
-    message('Estructura leída sin modificar el formulario. Para cargar las horas, pulsa Conectar formulario y después Probar carga sin guardar.');
+    message('Form structure read without changing it. To fill in working hours, click Connect form, then Test fill without saving.');
   } catch (error) {
     message(error.message, true);
   } finally {
@@ -304,18 +304,18 @@ $('connect').addEventListener('click', async () => {
   if (operating || sending) return;
   operating = true;
   renderPortal();
-  $('connect').textContent = 'Comprobando formulario…';
-  message('Comprobando la cuenta y los controles del formulario. No se cambiarán campos ni se guardará nada.');
+  $('connect').textContent = 'Checking form…';
+  message('Checking the account and form controls. No fields will be changed and nothing will be saved.');
   try {
     portal = await api('/api/portal/verify');
-    message('Formulario conectado sin modificarlo. Genera o revisa tu periodo y pulsa Probar carga sin guardar.');
+    message('Form connected without changes. Generate or review your date range, then click Test fill without saving.');
   } catch (error) {
     portal.canPrepare = false;
     portal.canSend = false;
     message(error.message, true);
   } finally {
     operating = false;
-    $('connect').textContent = 'Conectar formulario';
+    $('connect').textContent = 'Connect form';
     renderPortal();
   }
 });
@@ -327,7 +327,7 @@ $('prepare').addEventListener('click', async () => {
   operating = true;
   [...$('period-form').elements].forEach(element => { element.disabled = true; });
   renderPortal();
-  message('Cargando la primera entrada seleccionada en Edge. No se guardará ninguna solicitud.');
+  message('Filling in the first selected clock-in in Edge. No requests will be saved.');
   try {
     const result = await api('/api/portal/prepare', { planId: plan.id, selectedDates: dates });
     portal = result.portal;
@@ -347,7 +347,7 @@ $('download').addEventListener('click', () => {
   const url = URL.createObjectURL(new Blob([JSON.stringify(diagnostic, null, 2)], { type: 'application/json' }));
   const link = document.createElement('a');
   link.href = url;
-  link.download = 'visualtime-formulario.json';
+  link.download = 'visualtime-form.json';
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 });
@@ -356,41 +356,41 @@ $('send').addEventListener('click', async () => {
   if (!plan || !portal.canSend || sending || operating) return;
   const dates = selectedDates();
   if (!dates.length) return;
-  if (!window.confirm(`Se intentarán ${dates.length * 2} fichajes en ${dates.length} días, de ${plan.entry} a ${plan.exit}.\n\nSe volverán a intentar todos, aunque consten enviados, rechazados o inciertos en el journal. Si uno falla o ya existe, se registrará y se pasará al siguiente sin repetirlo en este lote.\n\nUn resultado incierto anterior podría haberse guardado: revisa el portal. El journal no bloqueará el nuevo intento que confirmas ahora.\n\nConfirma que son las horas realmente trabajadas y que has excluido días no trabajados. Motivo y Observaciones no se tocarán.\n\nLas solicitudes requieren validación del supervisor. ¿Enviar?`)) return;
+  if (!window.confirm(`This will attempt ${dates.length * 2} punches across ${dates.length} days, from ${plan.entry} to ${plan.exit}.\n\nAll selected punches will be attempted again, even if the journal records them as submitted, rejected, or uncertain. Failures and existing punches will be recorded, then the batch will continue without retrying that item in this batch.\n\nA previous uncertain attempt may have been saved: check the portal. The journal will not block the new attempt you are confirming now.\n\nConfirm these are the hours you actually worked and that you have excluded days you did not work. Reason and Comments will not be changed.\n\nRequests require supervisor approval. Submit?`)) return;
   sending = true;
   $('generate').disabled = true;
   [...$('period-form').elements].forEach(element => { element.disabled = true; });
   renderPortal();
-  message(`Enviando ${dates.length * 2} solicitudes. No manipules Edge, no pulses su disquete y no cierres esta aplicación. El resultado se actualizará debajo.`);
+  message(`Submitting ${dates.length * 2} requests. Do not interact with Edge, click its Save button, or close this app. Results will update below.`);
   const progress = setInterval(async () => {
     try {
       const response = await fetch('/api/state');
-      if (!response.ok) throw new Error('No se puede consultar el progreso.');
+      if (!response.ok) throw new Error('Unable to retrieve progress.');
       const state = await response.json();
       if (state.batch?.results.length) renderResults(state.batch.results);
     } catch (error) {
-      message(`No se puede consultar el progreso: ${error.message}. No reintentes ni cierres la aplicación; espera el resultado.`, true);
+      message(`Unable to retrieve progress: ${error.message}. Do not retry or close the app; wait for the result.`, true);
     }
   }, 1000);
   try {
     const response = await api('/api/send', { planId: plan.id, selectedDates: dates, confirmed: true });
     renderResults(response.results);
-    message('Proceso detenido o finalizado. Consulta el resultado de cada solicitud antes de actuar.');
+    message('Batch stopped or completed. Review the result of each request before taking further action.');
   } catch (error) {
     if (error.results) renderResults(error.results);
-    message(`${error.message}\nSi se ha perdido la conexión durante el envío, no reintentes: el resultado puede ser incierto. Revisa el portal y conserva el registro local.`, true);
+    message(`${error.message}\nIf the connection was lost during submission, do not retry: the outcome may be uncertain. Check the portal and keep the local journal.`, true);
   } finally {
     clearInterval(progress);
     sending = false;
     [...$('period-form').elements].forEach(element => { element.disabled = false; });
     try {
       const response = await fetch('/api/state');
-      if (!response.ok) throw new Error('No se puede consultar el estado final.');
+      if (!response.ok) throw new Error('Unable to retrieve the final status.');
       const state = await response.json();
       portal = state.portal;
     } catch (error) {
       portal.canSend = false;
-      message(`${error.message} Revisa los resultados antes de reintentar.`, true);
+      message(`${error.message} Review the results before retrying.`, true);
     }
     renderPortal();
   }
@@ -401,7 +401,7 @@ async function init() {
   $('open-portal').disabled = true;
   try {
     const response = await fetch('/api/state');
-    if (!response.ok) throw new Error('No se puede conectar con la aplicación local.');
+    if (!response.ok) throw new Error('Unable to connect to the local app.');
     const state = await response.json();
     token = state.token;
     portal = state.portal;
@@ -413,11 +413,11 @@ async function init() {
       sending = true;
       [...$('period-form').elements].forEach(element => { element.disabled = true; });
       renderPortal();
-      message('Hay un envío en curso. No se iniciará otro; espera el resultado sin manipular Edge.');
+      message('A batch is already running. No other batch will start; wait for the result without interacting with Edge.');
       const progress = setInterval(async () => {
         try {
           const response = await fetch('/api/state');
-          if (!response.ok) throw new Error('No se puede consultar el progreso.');
+          if (!response.ok) throw new Error('Unable to retrieve progress.');
           const current = await response.json();
           portal = current.portal;
           renderResults(current.batch.results);
@@ -425,16 +425,16 @@ async function init() {
             clearInterval(progress);
             sending = false;
             [...$('period-form').elements].forEach(element => { element.disabled = false; });
-            message('Proceso detenido o finalizado. Revisa el resultado por solicitud antes de actuar.');
+            message('Batch stopped or completed. Review each request result before taking further action.');
           }
           renderPortal();
         } catch (error) {
-          message(`${error.message} No reintentes: el envío puede seguir activo.`, true);
+          message(`${error.message} Do not retry: the batch may still be running.`, true);
         }
       }, 1000);
     }
   } catch (error) {
-    message(`${error.message} Comprueba la consola de VisualTimeSetter y recarga la página.`, true);
+    message(`${error.message} Check the VisualTimeSetter console and reload the page.`, true);
   }
 }
 init();

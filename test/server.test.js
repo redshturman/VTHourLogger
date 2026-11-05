@@ -26,7 +26,7 @@ test('HTTP local: vista previa, selección y envío bloqueado sin solicitudes re
   });
   const home = await fetch(url);
   assert.equal(home.status, 200);
-  assert.match(await home.text(), /Conecta el formulario para empezar/);
+  assert.match(await home.text(), /Connect the form to get started/);
   assert.match(home.headers.get('content-security-policy'), /frame-ancestors 'none'/);
   assert.equal((await post('/api/preview', {}, { Origin: 'https://example.invalid' })).status, 403);
   assert.equal((await post('/api/preview', {}, { 'X-Visualtime-Token': '' })).status, 403);
@@ -53,7 +53,7 @@ test('HTTP local: vista previa, selección y envío bloqueado sin solicitudes re
   const blocked = await post('/api/send', selection);
   assert.equal(blocked.status, 409);
   const report = await blocked.json();
-  assert.match(report.error, /bloqueado/);
+  assert.match(report.error, /blocked/);
   assert.equal(report.results.length, 4);
   assert.ok(report.results.every(result => result.status === 'not_attempted'));
   assert.deepEqual(report.results.map(result => result.time), ['08:15', '16:45', '08:15', '16:45']);

@@ -31,7 +31,7 @@ test('solo envía confirmados y registra cada solicitud antes de escribir', asyn
     calls.push(punch);
     return { confirmed: true, reference: `fixture-${calls.length}` };
   });
-  await assert.rejects(sender.send(punches(), false), /confirmar/);
+  await assert.rejects(sender.send(punches(), false), /confirm/);
   assert.equal(calls.length, 0);
   const result = await sender.send(punches(), true);
   assert.equal(calls.length, 4);
@@ -92,7 +92,7 @@ test('adaptador no verificado bloquea antes de cualquier escritura', async t => 
   let calls = 0;
   const { sender, portal, journal } = await setup(t, async () => { calls++; });
   portal.status = () => ({ canSend: false, accountId: null });
-  await assert.rejects(sender.send(punches(), true), /bloqueado/);
+  await assert.rejects(sender.send(punches(), true), /blocked/);
   assert.equal(calls, 0);
   assert.deepEqual(journal.records, {});
 });
@@ -130,7 +130,7 @@ test('impide lotes concurrentes', async t => {
   const receipt = new Promise(resolve => { release = resolve; });
   const { sender } = await setup(t, async () => receipt);
   const first = sender.send(punches().slice(0, 1), true);
-  await assert.rejects(sender.send(punches(), true), /curso/);
+  await assert.rejects(sender.send(punches(), true), /already running/);
   release({ confirmed: true, reference: 'fixture-1' });
   await first;
 });
@@ -140,7 +140,7 @@ test('registro dañado no se ignora ni se sobrescribe', async t => {
   await writeFile(journal.filename, '{ broken', 'utf8');
   await assert.rejects(new Journal(journal.filename).load());
   await writeFile(journal.filename, '{"version":0,"records":{}}', 'utf8');
-  await assert.rejects(new Journal(journal.filename).load(), /dañado/);
+  await assert.rejects(new Journal(journal.filename).load(), /damaged/);
 });
 
 test('fallo antes de enviar permite nuevo intento confirmado sin crear una incertidumbre falsa', async t => {

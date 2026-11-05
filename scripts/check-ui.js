@@ -22,9 +22,11 @@ try {
   await page.goto(url);
   await page.locator('#generate:enabled').waitFor();
   await page.locator('#start').fill('01/09/2026');
-  await page.getByRole('button', { name: 'Elegir fecha inicial', exact: true }).click();
-  await page.locator('#start-picker').getByRole('button', { name: 'Mes anterior', exact: true }).click();
-  await page.locator('#start-picker').getByRole('button', { name: 'Mes siguiente', exact: true }).click();
+  assert.equal(await page.locator('html').getAttribute('lang'), 'en');
+  await page.getByRole('button', { name: 'Choose start date', exact: true }).click();
+  assert.equal(await page.locator('#start-picker strong').textContent(), 'September 2026');
+  await page.locator('#start-picker').getByRole('button', { name: 'Previous month', exact: true }).click();
+  await page.locator('#start-picker').getByRole('button', { name: 'Next month', exact: true }).click();
   await page.locator('#start-picker').getByRole('button', { name: '02/09/2026', exact: true }).click();
   assert.equal(await page.locator('#start').inputValue(), '02/09/2026');
   assert.equal(await page.locator('#start-picker').isHidden(), true);
@@ -32,10 +34,10 @@ try {
   await page.locator('#end').fill('31/10/2026');
   await page.locator('#entry').fill('08:15');
   await page.locator('#exit').fill('16:45');
-  await page.getByRole('button', { name: 'Elegir hora de salida', exact: true }).click();
-  await page.locator('#exit-picker').getByLabel('Hora (24 h)').selectOption('18');
-  await page.locator('#exit-picker').getByLabel('Minuto', { exact: true }).selectOption('30');
-  await page.locator('#exit-picker').getByRole('button', { name: 'Elegir', exact: true }).click();
+  await page.getByRole('button', { name: 'Choose clock-out time', exact: true }).click();
+  await page.locator('#exit-picker').getByLabel('Hour (24 h)').selectOption('18');
+  await page.locator('#exit-picker').getByLabel('Minute', { exact: true }).selectOption('30');
+  await page.locator('#exit-picker').getByRole('button', { name: 'Choose', exact: true }).click();
   assert.equal(await page.locator('#exit').inputValue(), '18:30');
   await page.locator('#exit').fill('16:45');
   assert.equal(await page.locator('#entry').inputValue(), '08:15');
@@ -46,6 +48,7 @@ try {
   await page.locator('#end').fill('31/02/2026');
   await page.locator('#generate').click();
   await page.locator('#message:not([hidden])').waitFor();
+  assert.match(await page.locator('#message').textContent(), /End date: enter a valid date/);
   assert.equal(await page.locator('#preview').isHidden(), true);
   await page.locator('#end').fill('31/10/2026');
   await page.locator('#generate').click();
@@ -55,24 +58,26 @@ try {
   assert.equal(await page.locator('#days input[data-weekend]:checked').count(), 0);
   assert.equal(await page.locator('#days input[data-weekend]:disabled').count(), 17);
   assert.match(await page.locator('#days tr').first().textContent(), /01\/09\/2026/);
-  assert.equal(await page.locator('#summary').textContent(), '44 días · 88 solicitudes');
+  assert.match(await page.locator('#days tr').first().textContent(), /Tuesday/);
+  assert.match(await page.locator('#days tr').nth(4).textContent(), /Weekend/);
+  assert.equal(await page.locator('#summary').textContent(), '44 days · 88 requests');
   await page.locator('#days input').nth(1).uncheck();
-  assert.equal(await page.locator('#summary').textContent(), '43 días · 86 solicitudes');
+  assert.equal(await page.locator('#summary').textContent(), '43 days · 86 requests');
   assert.equal(await page.locator('#all-days').evaluate(element => element.indeterminate), true);
   assert.equal(await page.locator('#send').isDisabled(), true);
   assert.equal(await page.locator('#days tr').first().locator('td').nth(2).textContent(), '08:15');
   await page.locator('#all-days').check();
-  assert.equal(await page.locator('#summary').textContent(), '44 días · 88 solicitudes');
+  assert.equal(await page.locator('#summary').textContent(), '44 days · 88 requests');
   assert.equal(await page.locator('#days input[data-weekend]:checked').count(), 0);
   assert.equal(await page.locator('#days input[data-weekend]:disabled').count(), 17);
   await page.locator('#all-days').uncheck();
-  assert.equal(await page.locator('#summary').textContent(), '0 días · 0 solicitudes');
+  assert.equal(await page.locator('#summary').textContent(), '0 days · 0 requests');
   await page.locator('#all-days').check();
-  assert.equal(await page.locator('#summary').textContent(), '44 días · 88 solicitudes');
+  assert.equal(await page.locator('#summary').textContent(), '44 days · 88 requests');
   await mkdir('test-results', { recursive: true });
   await page.screenshot({ path: path.join('test-results', 'preview.png'), fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole('button', { name: 'Elegir hora de salida', exact: true }).click();
+  await page.getByRole('button', { name: 'Choose clock-out time', exact: true }).click();
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
   await page.keyboard.press('Escape');
   assert.equal(await page.locator('#exit-picker').isHidden(), true);
@@ -88,7 +93,7 @@ try {
   await page.locator('#entry').fill('22:00');
   await page.locator('#exit').fill('06:00');
   await page.locator('#generate').click();
-  await page.locator('#message').filter({ hasText: 'No se admiten turnos nocturnos' }).waitFor();
+  await page.locator('#message').filter({ hasText: 'Overnight shifts are not supported' }).waitFor();
 
   // Este HTML es una fixture, no evidencia de compatibilidad con el portal real.
   const fixture = await browser.newPage();
@@ -120,7 +125,7 @@ try {
   assert.equal(await fixture.locator('#when').inputValue(), 'NO_COMPARTIR');
   assert.equal(await fixture.evaluate(() => window.saved), undefined);
   assert.equal(inspector.status().canSend, false);
-  await assert.rejects(inspector.submit(), /Conecta el formulario/);
+  await assert.rejects(inspector.submit(), /Connect the form/);
   await fixture.goto('https://vtportal.visualtime.net/2/index2.aspx#home');
   await assert.rejects(inspector.inspect(), /Solicitar/);
   assert.deepEqual(errors, []);

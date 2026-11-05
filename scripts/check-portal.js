@@ -168,7 +168,7 @@ try {
     await portal.verify();
     assert.equal(portal.status().canPrepare, true);
     assert.equal(portal.status().canSend, false);
-    await assert.rejects(portal.submit(punches[0], portal.status().accountId), /prueba la carga/);
+    await assert.rejects(portal.submit(punches[0], portal.status().accountId), /test filling/);
     await portal.prepare(punches[0]);
     assert.equal(requests, 0);
     assert.equal(portal.status().canSend, true);
@@ -217,7 +217,7 @@ try {
   await tampered.page.addInitScript(() => { window.tamper = true; });
   const blocked = await tampered.sender.send(punches, true);
   assert.equal(blocked[0].status, 'not_attempted');
-  assert.match(blocked[0].message, /no coinciden/);
+  assert.match(blocked[0].message, /does not match/);
   assert.equal(requests, 0);
   await tampered.page.close();
 
@@ -225,7 +225,7 @@ try {
   await switched.page.evaluate(() => { VTPortal.roApp.employeeId = 999; });
   const changed = await switched.sender.send(punches, true);
   assert.equal(changed[0].status, 'not_attempted');
-  assert.match(changed[0].message, /cuenta/);
+  assert.match(changed[0].message, /account/);
   assert.equal(requests, 0);
   await switched.page.close();
 
@@ -235,7 +235,7 @@ try {
   });
   const changedOnReload = await switchedOnReload.sender.send(punches, true);
   assert.ok(changedOnReload.every(result => result.status === 'not_attempted'));
-  assert.match(changedOnReload[0].message, /cuenta/);
+  assert.match(changedOnReload[0].message, /account/);
   assert.equal(requests, 0);
   await switchedOnReload.page.close();
 
@@ -243,7 +243,7 @@ try {
   reply = () => ({ d: { Status: 0, PunchWithoutRequest: true } });
   const directResult = await direct.sender.send(punches, true);
   assert.deepEqual(directResult.map(result => result.status), ['submitted', 'not_attempted', 'not_attempted', 'not_attempted']);
-  assert.match(directResult[0].message, /directamente/);
+  assert.match(directResult[0].message, /directly/);
   assert.equal(requests, 1);
   await direct.page.close();
 
@@ -296,13 +296,13 @@ try {
 
   const validation = await setup();
   await validation.page.evaluate(() => { fixtureOptions.get('dxSelectBox: cmbRequestValue2').value = '123'; });
-  await assert.rejects(validation.portal.verify(), /no están vacíos/);
+  await assert.rejects(validation.portal.verify(), /are not empty/);
   assert.equal(validation.portal.status().canSend, false);
   assert.equal(requests, 0);
   await validation.page.evaluate(() => { fixtureOptions.get('dxSelectBox: cmbRequestValue2').value = null; });
   await validation.portal.verify();
-  await assert.rejects(validation.portal.prepare({ ...punches[0], date: '2099-01-01' }), /histórica/);
-  await assert.rejects(validation.portal.prepare({ ...punches[0], date: '2026-03-29', time: '02:30' }), /no existe/);
+  await assert.rejects(validation.portal.prepare({ ...punches[0], date: '2099-01-01' }), /historical/);
+  await assert.rejects(validation.portal.prepare({ ...punches[0], date: '2026-03-29', time: '02:30' }), /does not exist/);
   assert.equal(requests, 0);
   await validation.page.close();
 
@@ -370,7 +370,7 @@ try {
   await hiddenInput.page.evaluate(() => {
     fixtureOptions.get('dxSelectBox: cmbforgottenPunchType').value = 2;
   });
-  await assert.rejects(hiddenInput.portal.verify(), /debe ser Presencia/);
+  await assert.rejects(hiddenInput.portal.verify(), /must be Attendance/);
   assert.equal(requests, 0);
   await hiddenInput.page.close();
 
@@ -393,7 +393,7 @@ try {
     await ui.locator('#generate').click();
     await integrated.page.evaluate(() => { fixtureOptions.get('dxSelectBox: cmbforgottenPunchType').value = 2; });
     await ui.locator('#connect').click();
-    await ui.locator('#connection-message').filter({ hasText: 'debe ser Presencia' }).waitFor();
+    await ui.locator('#connection-message').filter({ hasText: 'must be Attendance' }).waitFor();
     assert.equal(await ui.locator('#connection-message').isVisible(), true);
     assert.equal(await ui.locator('#prepare').isDisabled(), true);
     assert.equal(await ui.locator('#send').isDisabled(), true);
@@ -401,32 +401,37 @@ try {
     await integrated.page.evaluate(() => { fixtureOptions.get('dxSelectBox: cmbforgottenPunchType').value = 1; });
     await ui.locator('#connect').click();
     await ui.locator('#prepare:enabled').waitFor();
-    await ui.locator('#connection-message').filter({ hasText: 'Formulario conectado' }).waitFor();
+    await ui.locator('#connection-message').filter({ hasText: 'Form connected' }).waitFor();
     await ui.locator('#prepare').click();
     await ui.locator('#send:enabled').waitFor();
     assert.equal(requests, 0);
     ui.once('dialog', dialog => dialog.dismiss());
     await ui.locator('#send').click();
     assert.equal(requests, 0);
-    ui.once('dialog', dialog => dialog.accept());
+    ui.once('dialog', async dialog => {
+      assert.match(dialog.message(), /Confirm these are the hours you actually worked/);
+      await dialog.accept();
+    });
     await ui.locator('#send').click();
-    await ui.locator('#results-summary').filter({ hasText: '2 enviadas' }).waitFor();
+    await ui.locator('#results-summary').filter({ hasText: '2 submitted' }).waitFor();
     assert.equal(requests, 2);
     await ui.locator('#send:enabled').waitFor();
     assert.equal(await ui.locator('#results tr').count(), 2);
     assert.match(await ui.locator('#results tr').first().textContent(), /01\/09\/2026 08:15/);
+    assert.match(await ui.locator('#results tr').first().textContent(), /Clock in/);
+    assert.match(await ui.locator('#results tr').first().textContent(), /Awaiting supervisor approval/);
     assert.equal((await ui.locator('#results').textContent()).includes('2026-09-01'), false);
     reply = () => ({ d: { Status: -51 } });
     ui.once('dialog', dialog => dialog.accept());
     await ui.locator('#send').click();
-    await ui.locator('#results-summary').filter({ hasText: '2 omitidas' }).waitFor();
+    await ui.locator('#results-summary').filter({ hasText: '2 skipped' }).waitFor();
     assert.equal(requests, 4);
     await ui.locator('#send:enabled').waitFor();
     // Los dos registros han sido borrados en el portal simulado.
     reply = () => ({ d: { Status: 0 } });
     ui.once('dialog', dialog => dialog.accept());
     await ui.locator('#send').click();
-    await ui.locator('#results-summary').filter({ hasText: '2 enviadas' }).waitFor();
+    await ui.locator('#results-summary').filter({ hasText: '2 submitted' }).waitFor();
     assert.equal(requests, 6);
   } finally {
     await ui.close();

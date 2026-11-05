@@ -25,15 +25,15 @@ export class Portal {
       canSend: browserOpen && Boolean(this.connection) && this.prepared,
       accountId: browserOpen ? this.connection?.accountId || null : null,
       message: !this.connection
-        ? 'Abre una solicitud nueva y verifica el formulario. Todavía no se ha enviado nada.'
+        ? 'Open a new request and verify the form. Nothing has been submitted yet.'
         : !this.prepared
-          ? 'Formulario conectado. Prueba la carga sin guardar antes de confirmar el envío.'
-          : 'Carga preparada sin guardar. El envío solo comenzará tras tu confirmación explícita.'
+          ? 'Form connected. Test filling without saving before confirming submission.'
+          : 'Form filled without saving. Submission will only start after your explicit confirmation.'
     };
   }
 
   async open() {
-    if (this.opening) throw new AppError('El navegador se está abriendo.', 409);
+    if (this.opening) throw new AppError('The browser is opening.', 409);
     if (this.status().browserOpen) {
       await this.page.bringToFront();
       return this.status();
@@ -48,17 +48,17 @@ export class Portal {
       return this.status();
     } catch (error) {
       await this.close();
-      throw new AppError(`No se pudo abrir Microsoft Edge: ${error.message}. Comprueba que esté instalado y vuelve a intentarlo.`, 503);
+      throw new AppError(`Unable to open Microsoft Edge: ${error.message}. Check that it is installed and try again.`, 503);
     } finally {
       this.opening = false;
     }
   }
 
   async inspect() {
-    if (!this.status().browserOpen) throw new AppError('Abre primero el navegador del portal.', 409);
+    if (!this.status().browserOpen) throw new AppError('Open the portal browser first.', 409);
     const url = new URL(this.page.url());
     if (url.origin !== 'https://vtportal.visualtime.net' || !url.hash.startsWith('#forgottenPunch')) {
-      throw new AppError('En Edge, inicia sesión y abre Solicitar → Fichaje no realizado. No pulses Guardar. Después repite la inspección.', 409);
+      throw new AppError('In Edge, sign in and open Request → Missing punch (Solicitar → Fichaje no realizado in Spanish). Do not click Save. Then inspect again.', 409);
     }
     // Solo se extrae estructura; no se leen valores introducidos ni datos de autenticación.
     const structure = await this.page.evaluate(() => {
@@ -110,15 +110,15 @@ export class Portal {
       page: `${url.origin}${url.pathname}#forgottenPunch…`,
       readOnly: true,
       ...structure,
-      warning: 'Diagnóstico de estructura, no verificación del envío. No se han modificado campos ni pulsado Guardar. Revisa el diagnóstico antes de compartirlo.'
+      warning: 'Structure diagnostic, not submission verification. No fields were changed and Save was not clicked. Review the diagnostic before sharing. Portal labels retain their original language.'
     };
   }
 
   requirePage() {
-    if (!this.status().browserOpen) throw new AppError('Abre el portal desde esta aplicación y vuelve a conectar.', 409);
+    if (!this.status().browserOpen) throw new AppError('Open the portal from this app and connect again.', 409);
     const url = new URL(this.page.url());
     if (url.origin !== 'https://vtportal.visualtime.net') {
-      throw new AppError('El navegador no está en el portal de Visualtime.', 409);
+      throw new AppError('The browser is not on the Visualtime portal.', 409);
     }
   }
 
@@ -127,7 +127,7 @@ export class Portal {
   }
 
   async verify() {
-    if (this.busy) throw new AppError('Hay una operación de portal en curso.', 409);
+    if (this.busy) throw new AppError('A portal operation is already running.', 409);
     this.connection = null;
     this.prepared = false;
     this.requirePage();
@@ -136,7 +136,7 @@ export class Portal {
       this.connection = { accountId: this.accountId(form.identity), writeUrl: form.writeUrl };
       return this.status();
     } catch (error) {
-      throw new AppError(`No se puede conectar el formulario: ${error.message}`, 409);
+      throw new AppError(`Unable to connect the form: ${error.message}`, 409);
     }
   }
 
@@ -146,7 +146,7 @@ export class Portal {
     if (this.accountId(identity) !== accountId || this.connection?.accountId !== accountId) {
       this.connection = null;
       this.prepared = false;
-      throw new AppError('La cuenta del portal ha cambiado. Conecta de nuevo; no se guardará nada.', 409);
+      throw new AppError('The portal account has changed. Connect again; nothing will be saved.', 409);
     }
   }
 
@@ -174,7 +174,7 @@ export class Portal {
       }, null, { timeout: 30000 });
     } catch (error) {
       if (error.name !== 'TimeoutError') throw error;
-      throw new Error('El portal no terminó de iniciar tras la recarga. Comprueba en Edge si pide iniciar sesión. No se ha pulsado Guardar.');
+      throw new Error('The portal did not finish starting after reloading. Check Edge for a sign-in prompt. Save has not been clicked.');
     }
     await this.checkAccount(accountId);
     await this.page.evaluate(route => window.VTPortal.app.navigate(route), route);
@@ -212,15 +212,15 @@ export class Portal {
     await this.checkAccount(accountId);
     const form = await this.page.evaluate(readPortalForm, { punch });
     if (this.accountId(form.identity) !== accountId || form.writeUrl !== this.connection.writeUrl) {
-      throw new Error('La cuenta o el servicio han cambiado durante la carga. No se guardará.');
+      throw new Error('The account or service changed while filling the form. Nothing will be saved.');
     }
     return form;
   }
 
   async prepare(punch) {
-    if (this.busy) throw new AppError('Hay una operación de portal en curso.', 409);
+    if (this.busy) throw new AppError('A portal operation is already running.', 409);
     const status = this.status();
-    if (!status.canPrepare) throw new AppError('Verifica primero el formulario autenticado.', 409);
+    if (!status.canPrepare) throw new AppError('Verify the authenticated form first.', 409);
     this.busy = true;
     this.prepared = false;
     try {
@@ -229,10 +229,10 @@ export class Portal {
       await this.page.bringToFront();
       return {
         portal: this.status(), punch, saved: false,
-        message: 'Fecha, hora y sentido cargados en Edge. NO se ha pulsado Guardar. Comprueba los campos; después vuelve a la aplicación para confirmar el lote.'
+        message: 'Date, time, and direction filled in Edge. Save has NOT been clicked. Check the fields, then return to the app to confirm the batch.'
       };
     } catch (error) {
-      throw new AppError(`No se pudo preparar el formulario: ${error.message}`, 409);
+      throw new AppError(`Unable to prepare the form: ${error.message}`, 409);
     } finally {
       this.busy = false;
     }
@@ -241,7 +241,7 @@ export class Portal {
   async submit(punch, expectedAccountId) {
     const status = this.status();
     if (!status.canSend || this.busy || status.accountId !== expectedAccountId) {
-      const error = new AppError('Conecta el formulario y prueba la carga sin guardar antes de enviar. La cuenta debe coincidir con la confirmada.', 409);
+      const error = new AppError('Connect the form and test filling without saving before submitting. The account must match the confirmed account.', 409);
       error.outcome = 'not_attempted';
       throw error;
     }
@@ -271,7 +271,7 @@ export class Portal {
         if (request.method() === 'OPTIONS') return route.fallback();
         try {
           if (request.method() !== 'POST' || ++requestCount !== 1) {
-            throw new Error('El portal ha intentado un envío inesperado o repetido.');
+            throw new Error('The portal attempted an unexpected or repeated submission.');
           }
           const fields = await multipartFields(request);
           const expected = {
@@ -284,7 +284,7 @@ export class Portal {
           };
           if (Object.keys(fields).length !== Object.keys(expected).length ||
               Object.entries(expected).some(([key, value]) => fields[key] !== value)) {
-            throw new Error('Los datos de salida no coinciden con la solicitud confirmada. Se ha bloqueado el envío.');
+            throw new Error('Outgoing data does not match the confirmed request. Submission was blocked.');
           }
           await this.checkAccount(status.accountId);
           releasedRequest = request;
@@ -303,15 +303,15 @@ export class Portal {
         if (response.request() !== releasedRequest) return;
         try {
           if (!response.ok()) {
-            networkReceipt = { error: `El servicio respondió HTTP ${response.status()}.` };
+            networkReceipt = { error: `The service returned HTTP ${response.status()}.` };
             return;
           }
           const body = await response.json();
           networkReceipt = typeof body?.d?.Status === 'number'
             ? { receipt: { Status: body.d.Status, PunchWithoutRequest: body.d.PunchWithoutRequest === true } }
-            : { error: 'La respuesta del servicio no contiene un código de resultado válido.' };
+            : { error: 'The service response does not contain a valid result code.' };
         } catch (error) {
-          networkReceipt = { error: `No se pudo leer el acuse del servicio: ${error.message}` };
+          networkReceipt = { error: `Unable to read the service acknowledgement: ${error.message}` };
         }
       };
       this.page.on('response', responseListener);
@@ -331,13 +331,13 @@ export class Portal {
         }, observerId);
         if (failure) throw new Error(failure);
         if (Date.now() >= deadline) {
-          throw new Error(`No se recibió el acuse del servicio (${requestCount} peticiones observadas). No se reintentará el guardado.`);
+          throw new Error(`No service acknowledgement received (${requestCount} requests observed). Saving will not be retried.`);
         }
         await new Promise(resolve => setTimeout(resolve, 50));
       }
       const observed = await this.page.evaluate(id => {
         const state = window.__visualtimeSaveObserver;
-        if (state?.id !== id) throw new Error('Se perdió la observación de guardado.');
+        if (state?.id !== id) throw new Error('The save observer was lost.');
         return { receipt: state.receipt, blocked: state.blocked, calls: state.calls };
       }, observerId);
       if (blocked) throw blocked;
@@ -349,7 +349,7 @@ export class Portal {
       }
       if (networkReceipt.error) throw new Error(networkReceipt.error);
       if (observed.receipt && observed.receipt.Status !== networkReceipt.receipt.Status) {
-        throw new Error('El callback y la respuesta del servicio no coinciden. Revisa el portal.');
+        throw new Error('The callback and service response do not match. Check the portal.');
       }
       const receipt = { d: networkReceipt.receipt };
       if (receipt?.d?.Status === -50 || receipt?.d?.Status === -51) {
@@ -366,9 +366,9 @@ export class Portal {
         if (code === -50) {
           rejected = true;
           const error = new Error(
-            `El portal rechazó ${punch.date} ${punch.time} ${punch.direction} como solicitud repetida (Status=-50). ` +
-            'No se ha creado una solicitud nueva y no se ha verificado que exista una visible en el portal.' +
-            (detail ? ` Mensaje visible del portal: ${detail}` : '')
+            `The portal rejected ${punch.date} ${punch.time} ${punch.direction === 'Entrada' ? 'Clock in' : 'Clock out'} as a repeated request (Status=-50). ` +
+            'No new request was created and an existing visible request has not been verified.' +
+            (detail ? ` Original portal message: ${detail}` : '')
           );
           error.portalStatus = code;
           throw error;
@@ -377,24 +377,24 @@ export class Portal {
           confirmed: true,
           existing: true,
           portalStatus: code,
-          reference: 'El portal indica que ya existe un fichaje con esta fecha y hora.'
+          reference: 'The portal reports that a punch already exists for this date and time.'
         };
       }
       if (receipt?.d?.Status !== 0) {
         rejected = typeof receipt?.d?.Status === 'number';
-        const error = new Error(`El portal no confirmó la solicitud (Status=${receipt?.d?.Status ?? 'desconocido'}). No se aceptarán advertencias automáticamente.`);
+        const error = new Error(`The portal did not confirm the request (Status=${receipt?.d?.Status ?? 'unknown'}). Warnings will not be accepted automatically.`);
         error.portalStatus = receipt?.d?.Status;
         throw error;
       }
       await this.page.waitForFunction(() => !location.hash.startsWith('#forgottenPunch/'), null, { timeout: 10000 });
       return {
         confirmed: true,
-        reference: `Acuse del portal Status=0 · ${punch.date} ${punch.time} ${punch.direction}`,
+        reference: `Portal acknowledgement Status=0 · ${punch.date} ${punch.time} ${punch.direction === 'Entrada' ? 'Clock in' : 'Clock out'}`,
         directPunch: receipt.d.PunchWithoutRequest === true,
         stop: receipt.d.PunchWithoutRequest === true
       };
     } catch (error) {
-      const failure = new AppError(`${clicked ? 'Guardado no confirmado' : 'No se ha pulsado Guardar'}: ${error.message}`, 409);
+      const failure = new AppError(`${clicked ? 'Save not confirmed' : 'Save has not been clicked'}: ${error.message}`, 409);
       failure.outcome = !clicked || (blocked && releasedCount === 0) ? 'not_attempted' : rejected ? 'failed' : 'uncertain';
       failure.portalStatus = error.portalStatus;
       throw failure;
